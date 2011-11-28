@@ -360,18 +360,30 @@ class setDest(LoggingBuildStep):
 	return self.finished(SUCCESS)
 
 def runPreamble(factory, target):
-        factory.addStep(setDest(workdir=WithProperties("%s", "workdir"), btarget=target))
-        factory.addStep(ShellCommand(doStepIf=getRepo,
-                        description="Getting the requested git repo",
-                        command='echo "Getting the requested git repo"'))
-        factory.addStep(shell.SetProperty(workdir="build/meta-qt3",
-                        command="git rev-parse HEAD",
-                        property="QTHASH"))
+    factory.addStep(shell.SetProperty(
+                    command="uname -a",
+                    property="UNAME"))
+    factory.addStep(shell.SetProperty(
+                    command="echo $HOSTNAME",
+                    property="HOSTNAME"))
+    factory.addStep(ShellCommand(
+                    description=["Building on", WithProperties("%s", "HOSTNAME"),  WithProperties("%s", "UNAME")],
+                    command=["echo", WithProperties("%s", "HOSTNAME"),  WithProperties("%s", "UNAME")]))
+    factory.addStep(ShellCommand(doStepIf=getCleanSS,
+                description="Prepping for nightly creation by removing SSTATE", 
+                timeout=62400,
+                command=["rm", "-rf", defaultenv['SSTATE_DIR'], defaultenv['LSB_SSTATE_DIR']]))
+    factory.addStep(setDest(workdir=WithProperties("%s", "workdir"), btarget=target))
+    factory.addStep(ShellCommand(doStepIf=getRepo,
+                    description="Getting the requested git repo",
+                    command='echo "Getting the requested git repo"'))
+    factory.addStep(shell.SetProperty(workdir="build/meta-qt3",
+                    command="git rev-parse HEAD",
+                    property="QTHASH"))
 
 def getRepo(step):
     gittype = step.getProperty("repository")
     if gittype == "git://git.yoctoproject.org/poky-contrib":
-#       step.setProperty("branch", "sgw/edison")
        step.setProperty("branch", "stage/master_under_test")
     elif gittype == "git://git.yoctoproject.org/poky":
          try:
@@ -572,6 +584,15 @@ def runPostamble(factory):
         factory.addStep(ShellCommand, description="Moving tarball", 
                         command=["sh", "-c", WithProperties("mv yocto.tar.bz2 %s", "DEST")],
                         timeout=600)
+def getCleanSS(step):
+    try:
+        cleansstate = step.getProperty("cleansstate")
+    except:
+        cleansstate = False
+    if cleansstate=="True":
+        return True
+    else:
+        return False
 
 def buildBSPLayer(factory, distrotype, btarget):
     if distrotype == "poky":
@@ -739,228 +760,6 @@ def getSlaveBaseDir(step):
 # These are predefined buildsets used on the yocto-project production autobuilder
 #
 ################################################################################
-################################################################################
-# Yocto Master Fuzzy Target
-################################################################################
-f2 = factory.BuildFactory()
-fuzzsched = Triggerable(name="fuzzy-master",
-        builderNames=["b2"])
-defaultenv['REVISION'] = "HEAD"
-defaultenv['ABTARGET'] = 'fuzzy-master'
-defaultenv['SLAVEBASEDIR'] = ''
-f2.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
-f2.addStep(ShellCommand(doStepIf=getSlaveBaseDir,
-                    env=copy.copy(defaultenv),
-                    command='echo "Getting the slave basedir"'))
-makeCheckout(f2)
-fuzzyBuild(f2)
-f2.addStep(Trigger(schedulerNames=['fuzzymastersched'],
-                           updateSourceStamp=False,
-                           waitForFinish=False))
-b2 = {'name': "fuzzy-master",
-       'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
-      'builddir': "fuzzy-master",
-      'factory': f2
-     }
-yocto_builders.append(b2)
-yocto_sched.append(triggerable.Triggerable(name="fuzzymastersched", builderNames=["fuzzy-master"]))
-
-################################################################################
-# Yocto poky-contrib master-under-test Fuzzy Target
-################################################################################
-f3 = factory.BuildFactory()
-fuzzsched = Triggerable(name="fuzzy-mut",
-        builderNames=["b3"])
-defaultenv['REVISION'] = "HEAD"
-defaultenv['ABTARGET'] = 'fuzzy-mut'
-defaultenv['SLAVEBASEDIR'] = ''
-f3.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
-f3.addStep(ShellCommand(doStepIf=getSlaveBaseDir,
-                    env=copy.copy(defaultenv),
-                    command='echo "Getting the slave basedir"'))
-
-makeCheckout(f3)
-fuzzyBuild(f3)
-f3.addStep(Trigger(schedulerNames=['fuzzymutsched'],
-                           updateSourceStamp=False,
-                           waitForFinish=False))
-b3 = {'name': "fuzzy-mut",
-       'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
-      'builddir': "fuzzy-mut",
-      'factory': f3
-     }
-yocto_builders.append(b3)
-yocto_sched.append(triggerable.Triggerable(name="fuzzymutsched", builderNames=["fuzzy-mut"]))
-
-################################################################################
-# Selectable Targets, for when a nightly fails one or two images
-################################################################################
-f4 = factory.BuildFactory()
-defaultenv['REVISION'] = "HEAD"
-defaultenv['ABTARGET'] = 'meta-target'
-defaultenv['SLAVEBASEDIR'] = ''
-f4.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
-f4.addStep(ShellCommand(doStepIf=getSlaveBaseDir,
-                    env=copy.copy(defaultenv),
-                    command='echo "Getting the slave basedir"'))
-
-
-makeCheckout(f4)
-metaBuild(f4)
-b4 = {'name': "meta-target",
-       'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
-      'builddir': "meta-target",
-      'factory': f4
-     }
-yocto_builders.append(b4)
-
-################################################################################
-#
-# Poky Toolchain Swabber Builder Example Target
-#
-# Build the toolchain and sdk and profile it with swabber.
-# I've set this inactive, but it exists as an example
-################################################################################
-
-f22 = factory.BuildFactory()
-makeCheckout(f22)
-defaultenv['REVISION'] = "HEAD"
-defaultenv['DISTRO'] = 'poky'
-defaultenv['ABTARGET'] = 'core-swabber-test'
-defaultenv['SLAVEBASEDIR'] = ''
-f22.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
-f22.addStep(ShellCommand(doStepIf=getSlaveBaseDir,
-                    env=copy.copy(defaultenv),
-                    command='echo "Getting the slave basedir"'))
-f22.addStep(ShellCommand, description=["Setting", "SDKMACHINE=i686"], 
-            command="echo 'Setting SDKMACHINE=i686'", timeout=10)
-defaultenv['SDKMACHINE'] = 'i686'
-f22.addStep(ShellCommand, description=["Setting", "ENABLE_SWABBER"], 
-            command="echo 'Setting ENABLE_SWABBER'", timeout=10)
-defaultenv['ENABLE_SWABBER'] = 'true'
-runPreamble(f22, defaultenv['ABTARGET'])
-defaultenv['SDKMACHINE'] = 'i686'
-runImage(f22, 'qemux86-64', 'meta-toolchain-gmae', False)
-f22.addStep(ShellCommand, description="Setting SDKMACHINE=x86_64", 
-            command="echo 'Setting SDKMACHINE=x86_64'", timeout=10)
-defaultenv['SDKMACHINE'] = 'x86_64'
-runImage(f22, 'qemux86-64', 'meta-toolchain-gmae', False)
-if PUBLISH_BUILDS == "True":
-    swabberTimeStamp = strftime("%Y%m%d%H%M%S")
-    swabberTarPath = BUILD_PUBLISH_DIR + "/swabber-logs/" + swabberTimeStamp + ".tar.bz2"
-    f22.addStep(ShellCommand, description=["Compressing", "Swabber Logs"], 
-                command="tar cjf " + swabberTarPath + " build/tmp/log", 
-                timeout=10000)
-b22 = {'name': "core-swabber-test",
-       'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
-      'builddir': "core-swabber-test",
-      'factory': f22
-     }
-
-yocto_builders.append(b22)
-
-#yocto_sched.append(Nightly(name="Poky Swabber Test", branch=None,
-#                                 hour=05, minute=00,
-#                                 builderNames=["core-swabber-test"])) 	
-
-
-################################################################################
-#
-# Eclipse Plugin Builder
-#
-# This builds the eclipse plugin. This is a temporary area until this
-# gets merged into the nightly & milestone builds
-#
-################################################################################
-
-############################
-#
-# needs updating
-#
-###########################
-
-f61 = factory.BuildFactory()
-f61.addStep(ShellCommand, description="cleaning up eclipse build dir",
-			command="rm -rf *",
-			workdir=WithProperties("%s", "workdir"))
-f61.addStep(ShellCommand, description="Cloning eclipse-poky git repo",
-            command="yocto-eclipse-plugin-clone-repo", timeout=300)
-f61.addStep(ShellCommand, description="Checking out Eclipse Master Branch",
-            workdir="build/eclipse-plugin",
-            command="git checkout master",
-            timeout=60)
-f61.addStep(ShellCommand, description="Building eclipse plugin",
-            workdir="build/eclipse-plugin/scripts",
-            command="./setup.sh",
-            timeout=600)
-f61.addStep(ShellCommand, description="Building eclipse plugin",
-            workdir="build/eclipse-plugin/scripts",
-            command=WithProperties("ECLIPSE_HOME=%s/eclipse-plugin-helios/build/eclipse-plugin/scripts/eclipse ./build.sh ADT_helios rc4", "SLAVEBASEDIR"),
-            timeout=600)
-if PUBLISH_BUILDS == "True":
-    f61.addStep(ShellCommand(
-                description=["Making eclipse deploy dir"],
-                command=["mkdir", "-p", WithProperties("%s/eclipse-plugin/indigo", "DEST")],
-                env=copy.copy(defaultenv),
-                timeout=14400))
-    f61.addStep(ShellCommand, description=["Copying eclipse-plugin dir"],
-                command=["sh", "-c", WithProperties("cp *.zip %s/eclipse-plugin/indigo", "DEST")],
-                workdir="build/eclipse-plugin/scripts",
-                env=copy.copy(defaultenv),
-                timeout=14400)
-b61 = {'name': "eclipse-plugin",
-       'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
-      'builddir': "eclipse-plugin",
-      'factory': f61,
-      }
-yocto_builders.append(b61)
-
-################################################################################
-#
-# Eclipse Plugin Builder
-#
-# This builds the eclipse plugin. This is a temporary area until this
-# gets merged into the nightly & milestone builds
-#
-################################################################################
-
-f62 = factory.BuildFactory()
-defaultenv['SLAVEBASEDIR'] = ''
-f62.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
-f62.addStep(ShellCommand, description="cleaning up eclipse build dir",
-            command="rm -rf *",
-            workdir=WithProperties("%s", "workdir"))
-f62.addStep(ShellCommand, description="Cloning eclipse-poky git repo",
-            command="yocto-eclipse-plugin-clone-repo", timeout=300)
-f62.addStep(ShellCommand, description="Checking out Eclipse Master Branch",
-            workdir="build/eclipse-plugin",
-            command="git checkout ADT_helios",
-            timeout=60)
-f62.addStep(ShellCommand, description="Building eclipse plugin",
-            workdir="build/eclipse-plugin/scripts",
-            command="./setup.sh",
-            timeout=600)
-f62.addStep(ShellCommand, description="Building eclipse plugin",
-            workdir="build/eclipse-plugin/scripts",
-            command=WithProperties("ECLIPSE_HOME=%s/eclipse-plugin-helios/build/eclipse-plugin/scripts/eclipse ./build.sh ADT_helios rc4", "SLAVEBASEDIR"),
-            timeout=600)
-if PUBLISH_BUILDS == "True":
-    f62.addStep(ShellCommand(
-                description=["Making eclipse deploy dir"],
-                command=["mkdir", "-p", WithProperties("%s/eclipse-plugin/helios", "DEST")],
-                env=copy.copy(defaultenv),
-                timeout=14400))
-    f62.addStep(ShellCommand, description=["Copying eclipse-plugin dir"],
-                command=["sh", "-c", WithProperties("cp *.zip %s/eclipse-plugin/helios", "DEST")],
-                workdir="build/eclipse-plugin/scripts",
-                env=copy.copy(defaultenv),
-                timeout=14400)
-b62 = {'name': "eclipse-plugin-helios",
-       'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
-      'builddir': "eclipse-plugin-helios",
-      'factory': f62,
-      }
-yocto_builders.append(b62)
 
 ################################################################################
 #
@@ -1067,7 +866,51 @@ yocto_sched.append(triggerable.Triggerable(name="nightly-arm", builderNames=["ni
 yocto_sched.append(triggerable.Triggerable(name="nightly-ppc", builderNames=["nightly-mips"]))
 yocto_sched.append(triggerable.Triggerable(name="nightly-mips", builderNames=["nightly-ppc"]))
 yocto_sched.append(triggerable.Triggerable(name="eclipse-plugin", builderNames=["eclipse-plugin"]))
-#octo_sched.append(triggerable.Triggerable(name="eclipse-plugin-helio", builderNames=["eclipse-plugin-helios"]))
+
+################################################################################
+#
+# Eclipse Plugin Builder
+#
+# This builds the eclipse plugin. This is a temporary area until this
+# gets merged into the nightly & milestone builds
+#
+################################################################################
+
+f61 = factory.BuildFactory()
+f61.addStep(ShellCommand, description="cleaning up eclipse build dir",
+			command="rm -rf *",
+			workdir=WithProperties("%s", "workdir"))
+f61.addStep(ShellCommand, description="Cloning eclipse-poky git repo",
+            command="yocto-eclipse-plugin-clone-repo", timeout=300)
+f61.addStep(ShellCommand, description="Checking out Eclipse Master Branch",
+            workdir="build/eclipse-plugin",
+            command="git checkout master",
+            timeout=60)
+f61.addStep(ShellCommand, description="Building eclipse plugin",
+            workdir="build/eclipse-plugin/scripts",
+            command="./setup.sh",
+            timeout=600)
+f61.addStep(ShellCommand, description="Building eclipse plugin",
+            workdir="build/eclipse-plugin/scripts",
+            command=WithProperties("ECLIPSE_HOME=%s/eclipse-plugin-helios/build/eclipse-plugin/scripts/eclipse ./build.sh ADT_helios rc4", "SLAVEBASEDIR"),
+            timeout=600)
+if PUBLISH_BUILDS == "True":
+    f61.addStep(ShellCommand(
+                description=["Making eclipse deploy dir"],
+                command=["mkdir", "-p", WithProperties("%s/eclipse-plugin/indigo", "DEST")],
+                env=copy.copy(defaultenv),
+                timeout=14400))
+    f61.addStep(ShellCommand, description=["Copying eclipse-plugin dir"],
+                command=["sh", "-c", WithProperties("cp *.zip %s/eclipse-plugin/indigo", "DEST")],
+                workdir="build/eclipse-plugin/scripts",
+                env=copy.copy(defaultenv),
+                timeout=14400)
+b61 = {'name': "eclipse-plugin",
+       'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
+      'builddir': "eclipse-plugin",
+      'factory': f61,
+      }
+yocto_builders.append(b61)
 
 ################################################################################
 #
@@ -1298,6 +1141,10 @@ defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
 defaultenv['BSP_REV'] = "HEAD"
 defaultenv['SLAVEBASEDIR'] = ''
 f170.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
+f170.addStep(ShellCommand(doStepIf=getCleanSS,
+            description="Prepping for nightly creation by removing SSTATE",
+            timeout=62400,
+            command=["rm", "-rf", defaultenv['LSB_SSTATE_DIR'], defaultenv['SSTATE_DIR']]))
 makeCheckout(f170)
 runPreamble(f170, defaultenv['ABTARGET'])
 runBSPLayerPreamble(f170, defaultenv['ABTARGET'])
@@ -1329,6 +1176,10 @@ defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
 defaultenv['BSP_REV'] = "HEAD"
 defaultenv['SLAVEBASEDIR'] = ''
 f175.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
+f175.addStep(ShellCommand(doStepIf=getCleanSS,
+            description="Prepping for nightly creation by removing SSTATE",
+            timeout=62400,
+            command=["rm", "-rf", defaultenv['LSB_SSTATE_DIR'], defaultenv['SSTATE_DIR']]))
 makeCheckout(f175)
 runPreamble(f175, defaultenv['ABTARGET'])
 runBSPLayerPreamble(f175, defaultenv['ABTARGET'])
@@ -1359,6 +1210,10 @@ defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
 defaultenv['BSP_REV'] = "HEAD"
 defaultenv['SLAVEBASEDIR'] = ''
 f180.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
+f180.addStep(ShellCommand(doStepIf=getCleanSS,
+            description="Prepping for nightly creation by removing SSTATE",
+            timeout=62400,
+            command=["rm", "-rf", defaultenv['LSB_SSTATE_DIR'], defaultenv['SSTATE_DIR']]))
 makeCheckout(f180)
 runPreamble(f180, defaultenv['ABTARGET'])
 runBSPLayerPreamble(f180, defaultenv['ABTARGET'])
@@ -1389,6 +1244,10 @@ defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
 defaultenv['BSP_REV'] = "HEAD"
 defaultenv['SLAVEBASEDIR'] = ''
 f190.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
+f190.addStep(ShellCommand(doStepIf=getCleanSS,
+            description="Prepping for nightly creation by removing SSTATE",
+            timeout=62400,
+            command=["rm", "-rf", defaultenv['LSB_SSTATE_DIR'], defaultenv['SSTATE_DIR']]))
 makeCheckout(f190)
 runPreamble(f190, defaultenv['ABTARGET'])
 runBSPLayerPreamble(f190, defaultenv['ABTARGET'])
@@ -1419,6 +1278,10 @@ defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
 defaultenv['BSP_REV'] = "HEAD"
 defaultenv['SLAVEBASEDIR'] = ''
 f200.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
+f200.addStep(ShellCommand(doStepIf=getCleanSS,
+            description="Prepping for nightly creation by removing SSTATE",
+            timeout=62400,
+            command=["rm", "-rf", defaultenv['LSB_SSTATE_DIR'], defaultenv['SSTATE_DIR']]))
 makeCheckout(f200)
 runPreamble(f200, defaultenv['ABTARGET'])
 runBSPLayerPreamble(f200, defaultenv['ABTARGET'])
@@ -1449,6 +1312,10 @@ defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
 defaultenv['BSP_REV'] = "HEAD"
 defaultenv['SLAVEBASEDIR'] = ''
 f210.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
+f210.addStep(ShellCommand(doStepIf=getCleanSS,
+            description="Prepping for nightly creation by removing SSTATE",
+            timeout=62400,
+            command=["rm", "-rf", defaultenv['LSB_SSTATE_DIR'], defaultenv['SSTATE_DIR']]))
 makeCheckout(f210)
 runPreamble(f210, defaultenv['ABTARGET'])
 runBSPLayerPreamble(f210, defaultenv['ABTARGET'])
@@ -1479,6 +1346,10 @@ defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
 defaultenv['BSP_REV'] = "HEAD"
 defaultenv['SLAVEBASEDIR'] = ''
 f220.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
+f220.addStep(ShellCommand(doStepIf=getCleanSS,
+            description="Prepping for nightly creation by removing SSTATE",
+            timeout=62400,
+            command=["rm", "-rf", defaultenv['LSB_SSTATE_DIR'], defaultenv['SSTATE_DIR']]))
 makeCheckout(f220)
 runPreamble(f220, defaultenv['ABTARGET'])
 runBSPLayerPreamble(f220, defaultenv['ABTARGET'])
@@ -1509,6 +1380,10 @@ defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
 defaultenv['BSP_REV'] = "HEAD"
 defaultenv['SLAVEBASEDIR'] = ''
 f225.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
+f225.addStep(ShellCommand(doStepIf=getCleanSS,
+            description="Prepping for nightly creation by removing SSTATE",
+            timeout=62400,
+            command=["rm", "-rf", defaultenv['LSB_SSTATE_DIR'], defaultenv['SSTATE_DIR']]))
 makeCheckout(f225)
 runPreamble(f225, defaultenv['ABTARGET'])
 runBSPLayerPreamble(f225, defaultenv['ABTARGET'])
@@ -1521,3 +1396,165 @@ b225 = {'name': "fri2",
        'builddir': "fri2",
        'factory': f225}
 yocto_builders.append(b225)
+
+
+#####################################################################
+#
+# romley buildout
+#
+#####################################################################
+f230 = factory.BuildFactory()
+defaultenv['DISTRO'] = 'poky'
+defaultenv['ABTARGET'] = 'romley'
+defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['REVISION'] = "HEAD"
+defaultenv['BTARGET'] = 'romley'
+defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
+defaultenv['BSP_BRANCH'] = "master"
+defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
+defaultenv['BSP_REV'] = "HEAD"
+defaultenv['SLAVEBASEDIR'] = ''
+f230.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
+f230.addStep(ShellCommand(doStepIf=getCleanSS,
+            description="Prepping for nightly creation by removing SSTATE",
+            timeout=62400,
+            command=["rm", "-rf", defaultenv['LSB_SSTATE_DIR'], defaultenv['SSTATE_DIR']]))
+makeCheckout(f230)
+runPreamble(f230, defaultenv['ABTARGET'])
+runBSPLayerPreamble(f230, defaultenv['ABTARGET'])
+buildBSPLayer(f230, "poky", defaultenv['ABTARGET'])
+f230.addStep(ShellCommand, description="Moving old TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
+buildBSPLayer(f230, "poky-lsb", defaultenv['ABTARGET'])
+runPostamble(f230)
+b230 = {'name': "romley",
+       'slavenames': ["builder1"],
+       'builddir': "romley",
+       'factory': f230}
+yocto_builders.append(b230)
+
+
+
+################################################################################
+# Yocto Master Fuzzy Target
+################################################################################
+f2 = factory.BuildFactory()
+fuzzsched = Triggerable(name="fuzzy-master",
+        builderNames=["b2"])
+defaultenv['REVISION'] = "HEAD"
+defaultenv['ABTARGET'] = 'fuzzy-master'
+defaultenv['SLAVEBASEDIR'] = ''
+f2.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
+f2.addStep(ShellCommand(doStepIf=getSlaveBaseDir,
+                    env=copy.copy(defaultenv),
+                    command='echo "Getting the slave basedir"'))
+makeCheckout(f2)
+fuzzyBuild(f2)
+f2.addStep(Trigger(schedulerNames=['fuzzymastersched'],
+                           updateSourceStamp=False,
+                           waitForFinish=False))
+b2 = {'name': "fuzzy-master",
+       'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
+      'builddir': "fuzzy-master",
+      'factory': f2
+     }
+yocto_builders.append(b2)
+yocto_sched.append(triggerable.Triggerable(name="fuzzymastersched", builderNames=["fuzzy-master"]))
+
+################################################################################
+# Yocto poky-contrib master-under-test Fuzzy Target
+################################################################################
+f3 = factory.BuildFactory()
+fuzzsched = Triggerable(name="fuzzy-mut",
+        builderNames=["b3"])
+defaultenv['REVISION'] = "HEAD"
+defaultenv['ABTARGET'] = 'fuzzy-mut'
+defaultenv['SLAVEBASEDIR'] = ''
+f3.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
+f3.addStep(ShellCommand(doStepIf=getSlaveBaseDir,
+                    env=copy.copy(defaultenv),
+                    command='echo "Getting the slave basedir"'))
+
+makeCheckout(f3)
+fuzzyBuild(f3)
+f3.addStep(Trigger(schedulerNames=['fuzzymutsched'],
+                           updateSourceStamp=False,
+                           waitForFinish=False))
+b3 = {'name': "fuzzy-mut",
+       'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
+      'builddir': "fuzzy-mut",
+      'factory': f3
+     }
+yocto_builders.append(b3)
+yocto_sched.append(triggerable.Triggerable(name="fuzzymutsched", builderNames=["fuzzy-mut"]))
+
+################################################################################
+# Selectable Targets, for when a nightly fails one or two images
+################################################################################
+f4 = factory.BuildFactory()
+defaultenv['REVISION'] = "HEAD"
+defaultenv['ABTARGET'] = 'meta-target'
+defaultenv['SLAVEBASEDIR'] = ''
+f4.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
+f4.addStep(ShellCommand(doStepIf=getSlaveBaseDir,
+                    env=copy.copy(defaultenv),
+                    command='echo "Getting the slave basedir"'))
+
+
+makeCheckout(f4)
+metaBuild(f4)
+b4 = {'name': "meta-target",
+       'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
+      'builddir': "meta-target",
+      'factory': f4
+     }
+yocto_builders.append(b4)
+
+################################################################################
+#
+# Poky Toolchain Swabber Builder Example Target
+#
+# Build the toolchain and sdk and profile it with swabber.
+# I've set this inactive, but it exists as an example
+################################################################################
+
+f22 = factory.BuildFactory()
+makeCheckout(f22)
+defaultenv['REVISION'] = "HEAD"
+defaultenv['DISTRO'] = 'poky'
+defaultenv['ABTARGET'] = 'core-swabber-test'
+defaultenv['SLAVEBASEDIR'] = ''
+f22.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
+f22.addStep(ShellCommand(doStepIf=getSlaveBaseDir,
+                    env=copy.copy(defaultenv),
+                    command='echo "Getting the slave basedir"'))
+f22.addStep(ShellCommand, description=["Setting", "SDKMACHINE=i686"], 
+            command="echo 'Setting SDKMACHINE=i686'", timeout=10)
+defaultenv['SDKMACHINE'] = 'i686'
+f22.addStep(ShellCommand, description=["Setting", "ENABLE_SWABBER"], 
+            command="echo 'Setting ENABLE_SWABBER'", timeout=10)
+defaultenv['ENABLE_SWABBER'] = 'true'
+runPreamble(f22, defaultenv['ABTARGET'])
+defaultenv['SDKMACHINE'] = 'i686'
+runImage(f22, 'qemux86-64', 'meta-toolchain-gmae', False)
+f22.addStep(ShellCommand, description="Setting SDKMACHINE=x86_64", 
+            command="echo 'Setting SDKMACHINE=x86_64'", timeout=10)
+defaultenv['SDKMACHINE'] = 'x86_64'
+runImage(f22, 'qemux86-64', 'meta-toolchain-gmae', False)
+if PUBLISH_BUILDS == "True":
+    swabberTimeStamp = strftime("%Y%m%d%H%M%S")
+    swabberTarPath = BUILD_PUBLISH_DIR + "/swabber-logs/" + swabberTimeStamp + ".tar.bz2"
+    f22.addStep(ShellCommand, description=["Compressing", "Swabber Logs"], 
+                command="tar cjf " + swabberTarPath + " build/tmp/log", 
+                timeout=10000)
+b22 = {'name': "core-swabber-test",
+       'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
+      'builddir': "core-swabber-test",
+      'factory': f22
+     }
+
+yocto_builders.append(b22)
+
+#yocto_sched.append(Nightly(name="Poky Swabber Test", branch=None,
+#                                 hour=05, minute=00,
+#                                 builderNames=["core-swabber-test"])) 	
+
