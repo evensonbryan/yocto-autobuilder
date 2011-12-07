@@ -201,6 +201,11 @@ def createBBLayersConf(factory, btarget=None, bsplayer=False):
     if bsplayer==True:
         factory.addStep(ShellCommand(description="Creating bblayers.conf",
                         command=["sh", "-c", 
+                        WithProperties("echo '%s/" + defaultenv['ABTARGET'] + "/build/yocto/meta-intel/ \ ' >> %s/" + defaultenv['ABTARGET'] + 
+                                       "/build/build/conf/bblayers.conf", 'SLAVEBASEDIR' , 'SLAVEBASEDIR')],
+                        timeout=60))
+        factory.addStep(ShellCommand(description="Creating bblayers.conf",
+                        command=["sh", "-c", 
                         WithProperties("echo '%s/" + defaultenv['ABTARGET'] + "/build/yocto/meta-intel/meta-" + 
                                        str(btarget).replace("-noemgd", "") + " \ ' >> %s/" + defaultenv['ABTARGET'] + 
                                        "/build/build/conf/bblayers.conf", 'SLAVEBASEDIR' , 'SLAVEBASEDIR')],
@@ -284,7 +289,7 @@ def runBSPLayerPreamble(factory, target):
                     command="echo 'Checking out git://git.pokylinux.org/meta-intel.git'",
                     timeout=10)
     factory.addStep(ShellCommand(workdir="build/yocto/", command=["git", "clone",  "git://git.pokylinux.org/meta-intel.git"], timeout=1000))
-    factory.addStep(ShellCommand(workdir="build/yocto/meta-intel", command=["git", "checkout",  "edison"], timeout=1000))
+#   factory.addStep(ShellCommand(workdir="build/yocto/meta-intel", command=["git", "checkout",  "edison"], timeout=1000))
 #    factory.addStep(Git(repourl="git://git.pokylinux.org/meta-intel.git", 
 #                    mode="clobber", workdir="build/yocto/meta-intel",
 #                    branch="edison",
@@ -297,13 +302,13 @@ def runBSPLayerPreamble(factory, target):
                     timeout=60))
     factory.addStep(setDest(workdir=WithProperties("%s", "workdir"), btarget=target))
 
-def runImage(factory, machine, image, bsplayer):
+def runImage(factory, machine, image, distro, bsplayer):
     factory.addStep(ShellCommand, description=["Setting up build"],
                     command=["yocto-autobuild-preamble"],
                     workdir="build", 
                     env=copy.copy(defaultenv),
                     timeout=14400)                            
-    createAutoConf(factory, btarget=machine, distro=image)
+    createAutoConf(factory, btarget=machine, distro=distro)
     createBBLayersConf(factory, btarget=machine, bsplayer=bsplayer)
     defaultenv['MACHINE'] = machine
     factory.addStep(ShellCommand, description=["Building", machine, image],
@@ -314,8 +319,6 @@ def runImage(factory, machine, image, bsplayer):
 
 def runSanityTest(factory, machine, image):
     defaultenv['MACHINE'] = machine
-#  runImage(factory, machine, "qemutestimage", False)
-
     factory.addStep(ShellCommand, description=["Running sanity test for", 
                     machine, image], 
                     command=["yocto-autobuild-sanitytest", image], 
@@ -516,7 +519,7 @@ def metaBuild(factory):
 def nightlyQEMU(factory, machine, distrotype):
     if distrotype == "poky":
         defaultenv['DISTRO'] = "poky"
-        runImage(factory, machine, 'core-image-sato core-image-sato-dev core-image-sato-sdk core-image-minimal core-image-minimal-dev', False)
+        runImage(factory, machine, 'core-image-sato core-image-sato-dev core-image-sato-sdk core-image-minimal core-image-minimal-dev', distrotype, False)
         publishArtifacts(factory, machine, "build/build/tmp")
         publishArtifacts(factory, "ipk", "build/build/tmp")
         publishArtifacts(factory, "rpm", "build/build/tmp")
@@ -524,8 +527,8 @@ def nightlyQEMU(factory, machine, distrotype):
         runSanityTest(factory, machine, 'core-image-minimal')
     elif distrotype == "poky-lsb":
         defaultenv['DISTRO'] = "poky-lsb"
-#        runImage(factory, machine, "qt-x11-free", False)
-        runImage(factory, machine, 'core-image-lsb core-image-lsb-dev core-image-lsb-sdk core-image-lsb-qt3', False)
+        runImage(factory, machine, "qt-x11-free", distrotype, False)
+        runImage(factory, machine, 'core-image-lsb core-image-lsb-dev core-image-lsb-sdk core-image-lsb-qt3', distrotype, False)
         publishArtifacts(factory, machine, "build/build/tmp")
         publishArtifacts(factory, "ipk", "build/build/tmp")
         publishArtifacts(factory, "rpm", "build/build/tmp")
@@ -536,14 +539,14 @@ def nightlyQEMU(factory, machine, distrotype):
 def nightlyBSP(factory, machine, distrotype):
     if distrotype == "poky":
         defaultenv['DISTRO'] = 'poky'
-        runImage(factory, machine, 'core-image-sato core-image-sato-sdk core-image-minimal', False)
+        runImage(factory, machine, 'core-image-sato core-image-sato-sdk core-image-minimal', distrotype, False)
         publishArtifacts(factory, machine, "build/build/tmp")
         publishArtifacts(factory, "ipk", "build/build/tmp")
         publishArtifacts(factory, "rpm", "build/build/tmp")
     elif distrotype == "poky-lsb":
         defaultenv['DISTRO'] = 'poky-lsb'
-#        runImage(factory, machine, "qt-x11-free", False)
-        runImage(factory, machine,  'core-image-lsb-qt3 core-image-lsb-sdk', False)
+        runImage(factory, machine, "qt-x11-free", distrotype, False)
+        runImage(factory, machine,  'core-image-lsb-qt3 core-image-lsb-sdk', distrotype, False)
         publishArtifacts(factory, machine, "build/build/tmp")
         publishArtifacts(factory, "ipk", "build/build/tmp")
         publishArtifacts(factory, "rpm", "build/build/tmp")
@@ -597,13 +600,13 @@ def getCleanSS(step):
 def buildBSPLayer(factory, distrotype, btarget):
     if distrotype == "poky":
         defaultenv['DISTRO'] = 'poky'
-        runImage(factory, btarget, 'core-image-sato core-image-sato-sdk core-image-minimal', True)
+        runImage(factory, btarget, 'core-image-sato core-image-sato-sdk core-image-minimal', distrotype, True)
         publishArtifacts(factory, defaultenv['ABTARGET'], "build/build/tmp")
         publishArtifacts(factory, "ipk", "build/build/tmp")
         publishArtifacts(factory, "rpm", "build/build/tmp")
     elif distrotype == "poky-lsb":
         defaultenv['DISTRO'] = 'poky-lsb'
-        runImage(factory, btarget, 'core-image-lsb core-image-lsb-sdk', True)
+        runImage(factory, btarget, 'core-image-lsb core-image-lsb-sdk', distrotype, True)
         publishArtifacts(factory, defaultenv['ABTARGET'], "build/build/tmp")
         publishArtifacts(factory, "ipk", "build/build/tmp")
         publishArtifacts(factory, "rpm", "build/build/tmp")
@@ -799,7 +802,7 @@ f65.addStep(ShellCommand,
 """
 makeCheckout(f65)
 runPreamble(f65, defaultenv['ABTARGET'])
-runImage(f65, 'qemux86', 'world -c fetch', False)
+runImage(f65, 'qemux86', 'world -c fetch', "poky", False)
 
 f65.addStep(Trigger(schedulerNames=['nightly-x86'],
                             updateSourceStamp=False,
@@ -838,12 +841,12 @@ f65.addStep(ShellCommand,
             description="Prepping for package-index creation by copying rpms back to main builddir", workdir="build/build/tmp/deploy",
             command=["sh", "-c", WithProperties("cp -R %s/rpm rpm", "DEST")])
 defaultenv['SDKMACHINE'] = 'i686'
-runImage(f65, 'qemux86', 'package-index', False)
+runImage(f65, 'qemux86', 'package-index', "poky", False)
 defaultenv['SDKMACHINE'] = 'x86_64'
-runImage(f65, 'qemux86', 'package-index', False)
+runImage(f65, 'qemux86', 'package-index', "poky", False)
 publishArtifacts(f65, "ipk", "build/build/tmp")
 publishArtifacts(f65, "rpm", "build/build/tmp")
-runImage(f65, 'qemux86', 'adt-installer', False)
+runImage(f65, 'qemux86', 'adt-installer', "poky", False)
 publishArtifacts(f65, 'adt_installer', 'build/build/tmp')
 """
 f65.addStep(ShellCommand,
@@ -933,19 +936,17 @@ f66.addStep(ShellCommand, description="Setting SDKMACHINE=i686",
             command="echo 'Setting SDKMACHINE=i686'", timeout=10)
 nightlyQEMU(f66, 'qemux86', 'poky')
 nightlyBSP(f66, 'atom-pc', 'poky')
-runImage(f66, 'qemux86', 'meta-toolchain-gmae', False)
+runImage(f66, 'qemux86', 'meta-toolchain-gmae', "poky", False)
 #publishArtifacts(f66, "toolchain", "build/build/tmp")
 #publishArtifacts(f66, "ipk", "build/build/tmp")
 defaultenv['SDKMACHINE'] = 'x86_64'
 f66.addStep(ShellCommand, description="Setting SDKMACHINE=x86_64", 
             command="echo 'Setting SDKMACHINE=x86_64'", timeout=10)
-runImage(f66, 'qemux86', 'meta-toolchain-gmae', False)
+runImage(f66, 'qemux86', 'meta-toolchain-gmae', "poky", False)
 publishArtifacts(f66, "toolchain", "build/build/tmp")
 publishArtifacts(f66, "ipk", "build/build/tmp")
 f66.addStep(ShellCommand, description="Moving non-lsb TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
 defaultenv['DISTRO'] = "poky-lsb"
-runImage(f66, 'qemux86', 'qt-x11-free', False)
-runImage(f66, 'atom-pc', 'qt-x11-free', False)
 nightlyQEMU(f66, 'qemux86', "poky-lsb")
 nightlyBSP(f66, 'atom-pc', 'poky-lsb')
 f66.addStep(NoOp(name="nightly"))
@@ -975,16 +976,17 @@ defaultenv['SDKMACHINE'] = 'i686'
 f67.addStep(ShellCommand, description="Setting SDKMACHINE=i686", 
             command="echo 'Setting SDKMACHINE=i686'", timeout=10)
 nightlyQEMU(f67, 'qemux86-64', 'poky')
-runImage(f67, 'qemux86-64', 'meta-toolchain-gmae', False)
+runImage(f67, 'qemux86-64', 'meta-toolchain-gmae', "poky", False)
 #publishArtifacts(f67, "toolchain","build/build/tmp")
 #publishArtifacts(f67, "ipk", "build/build/tmp")
 defaultenv['SDKMACHINE'] = 'x86_64'
 f67.addStep(ShellCommand, description="Setting SDKMACHINE=x86_64", 
             command="echo 'Setting SDKMACHINE=x86_64'", timeout=10)
-runImage(f67, 'qemux86-64', 'meta-toolchain-gmae', False)
+runImage(f67, 'qemux86-64', 'meta-toolchain-gmae', "poky", False)
 publishArtifacts(f67, "toolchain","build/build/tmp")
 publishArtifacts(f67, "ipk", "build/build/tmp")
 f67.addStep(ShellCommand, description="Moving non-lsb TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
+defaultenv['DISTRO'] = "poky-lsb"
 nightlyQEMU(f67, 'qemux86-64', "poky-lsb")
 f67.addStep(NoOp(name="nightly"))
 b67 = {'name': "nightly-x86-64",
@@ -1016,18 +1018,17 @@ f68.addStep(ShellCommand, description="Setting SDKMACHINE=i686",
             command="echo 'Setting SDKMACHINE=i686'", timeout=10)
 nightlyQEMU(f68, 'qemuarm', 'poky')
 nightlyBSP(f68, 'beagleboard', 'poky')
-runImage(f68, 'qemuarm', 'meta-toolchain-gmae', False)
+runImage(f68, 'qemuarm', 'meta-toolchain-gmae', "poky", False)
 #publishArtifacts(f68, "toolchain", "build/build/tmp")
 #publishArtifacts(f68, "ipk", "build/build/tmp")
 defaultenv['SDKMACHINE'] = 'x86_64'
 f68.addStep(ShellCommand, description="Setting SDKMACHINE=x86_64", 
             command="echo 'Setting SDKMACHINE=x86_64'", timeout=10)
-runImage(f68, 'qemuarm', 'meta-toolchain-gmae', False)
+runImage(f68, 'qemuarm', 'meta-toolchain-gmae', "poky", False)
 publishArtifacts(f68, "toolchain","build/build/tmp")
 publishArtifacts(f68, "ipk", "build/build/tmp")
 f68.addStep(ShellCommand, description="Moving non-lsb TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
-runImage(f68, 'qemuarm', 'qt-x11-free', False)
-runImage(f68, 'beagleboard', 'qt-x11-free', False)
+defaultenv['DISTRO'] = "poky-lsb"
 nightlyQEMU(f68, 'qemuarm', "poky-lsb")
 nightlyBSP(f68, 'beagleboard', 'poky-lsb')
 f68.addStep(NoOp(name="nightly"))
@@ -1060,18 +1061,17 @@ f69.addStep(ShellCommand, description="Setting SDKMACHINE=i696",
             command="echo 'Setting SDKMACHINE=i696'", timeout=10)
 nightlyQEMU(f69, 'qemumips', 'poky')
 nightlyBSP(f69, 'routerstationpro', 'poky')
-runImage(f69, 'qemumips', 'meta-toolchain-gmae', False)
+runImage(f69, 'qemumips', 'meta-toolchain-gmae', "poky", False)
 #publishArtifacts(f69, "toolchain", "build/build/tmp")
 #publishArtifacts(f69, "ipk", "build/build/tmp")
 defaultenv['SDKMACHINE'] = 'x86_64'
 f69.addStep(ShellCommand, description="Setting SDKMACHINE=x86_64", 
             command="echo 'Setting SDKMACHINE=x86_64'", timeout=10)
-runImage(f69, 'qemumips', 'meta-toolchain-gmae', False)
+runImage(f69, 'qemumips', 'meta-toolchain-gmae', "poky", False)
 publishArtifacts(f69, "toolchain", "build/build/tmp" )
 publishArtifacts(f69, "ipk", "build/build/tmp")
 f69.addStep(ShellCommand, description="Moving non-lsb TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
-runImage(f69, 'qemumips', 'qt-x11-free', False)
-runImage(f69, 'routerstationpro', 'qt-x11-free', False)
+defaultenv['DISTRO'] = "poky-lsb"
 nightlyQEMU(f69, 'qemumips', "poky-lsb")
 nightlyBSP(f69, 'routerstationpro', 'poky-lsb')
 f69.addStep(NoOp(name="nightly"))
@@ -1102,18 +1102,17 @@ f70.addStep(ShellCommand, description="Setting SDKMACHINE=i706",
             command="echo 'Setting SDKMACHINE=i706'", timeout=10)
 nightlyQEMU(f70, 'qemuppc', 'poky')
 nightlyBSP(f70, 'mpc8315e-rdb', 'poky')
-runImage(f70, 'qemuppc', 'meta-toolchain-gmae', False)
+runImage(f70, 'qemuppc', 'meta-toolchain-gmae', "poky", False)
 #publishArtifacts(f70, "toolchain", "build/build/tmp")
 #publishArtifacts(f70, "ipk", "build/build/tmp")
 defaultenv['SDKMACHINE'] = 'x86_64'
 f70.addStep(ShellCommand, description="Setting SDKMACHINE=x86_64", 
             command="echo 'Setting SDKMACHINE=x86_64'", timeout=10)
-runImage(f70, 'qemuppc', 'meta-toolchain-gmae', False)
+runImage(f70, 'qemuppc', 'meta-toolchain-gmae', "poky", False)
 publishArtifacts(f70, "toolchain", "build/build/tmp")
 publishArtifacts(f70, "ipk", "build/build/tmp")
 f70.addStep(ShellCommand, description="Moving non-lsb TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
-runImage(f70, 'qemuppc', 'qt-x11-free', False)
-runImage(f70, 'mpc8315e-rdb', 'qt-x11-free', False)
+defaultenv['DISTRO'] = "poky-lsb"
 nightlyQEMU(f70, 'qemuppc', "poky-lsb")
 nightlyBSP(f70, 'mpc8315e-rdb', 'poky-lsb')
 f70.addStep(NoOp(name="nightly"))
@@ -1535,11 +1534,11 @@ f22.addStep(ShellCommand, description=["Setting", "ENABLE_SWABBER"],
 defaultenv['ENABLE_SWABBER'] = 'true'
 runPreamble(f22, defaultenv['ABTARGET'])
 defaultenv['SDKMACHINE'] = 'i686'
-runImage(f22, 'qemux86-64', 'meta-toolchain-gmae', False)
+runImage(f22, 'qemux86-64', 'meta-toolchain-gmae', "poky", False)
 f22.addStep(ShellCommand, description="Setting SDKMACHINE=x86_64", 
             command="echo 'Setting SDKMACHINE=x86_64'", timeout=10)
 defaultenv['SDKMACHINE'] = 'x86_64'
-runImage(f22, 'qemux86-64', 'meta-toolchain-gmae', False)
+runImage(f22, 'qemux86-64', 'meta-toolchain-gmae', "poky", False)
 if PUBLISH_BUILDS == "True":
     swabberTimeStamp = strftime("%Y%m%d%H%M%S")
     swabberTarPath = BUILD_PUBLISH_DIR + "/swabber-logs/" + swabberTimeStamp + ".tar.bz2"
