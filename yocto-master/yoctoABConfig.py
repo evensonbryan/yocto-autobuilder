@@ -482,7 +482,7 @@ def fuzzyBuild(factory):
                              WithProperties("%s", "FuzzSDK")],
                      env=copy.copy(defaultenv)))                                   
     runPreamble(factory, defaultenv["FuzzArch"])
-    createAutoConf(factory, btarget=defaultenv["FuzzArch"], distro=defaultenv["FuzzImage"])
+    createAutoConf(factory, btarget=defaultenv["FuzzArch"], distro="poky")
     createBBLayersConf(factory, btarget=defaultenv["FuzzArch"], bsplayer=False)
     factory.addStep(ShellCommand, 
                     description=["Building", WithProperties("%s", "FuzzImage")],
@@ -509,7 +509,7 @@ def metaBuild(factory):
                     workdir="build", 
                     env=copy.copy(defaultenv),
                     timeout=14400)                                                 
-    createAutoConf(factory, btarget=defaultenv["machine"], distro=defaultenv["machine"])
+    createAutoConf(factory, btarget=defaultenv["machine"], distro="poky")
     createBBLayersConf(factory, btarget=defaultenv["machine"], bsplayer=False)
     factory.addStep(ShellCommand, description=["Building", WithProperties("%s", "MetaImage")],
                     command=["yocto-autobuild", WithProperties("%s", "MetaImage"), "-k"],
@@ -527,7 +527,6 @@ def nightlyQEMU(factory, machine, distrotype):
         runSanityTest(factory, machine, 'core-image-minimal')
     elif distrotype == "poky-lsb":
         defaultenv['DISTRO'] = "poky-lsb"
-        runImage(factory, machine, "qt-x11-free", distrotype, False)
         runImage(factory, machine, 'core-image-lsb core-image-lsb-dev core-image-lsb-sdk core-image-lsb-qt3', distrotype, False)
         publishArtifacts(factory, machine, "build/build/tmp")
         publishArtifacts(factory, "ipk", "build/build/tmp")
@@ -545,7 +544,6 @@ def nightlyBSP(factory, machine, distrotype):
         publishArtifacts(factory, "rpm", "build/build/tmp")
     elif distrotype == "poky-lsb":
         defaultenv['DISTRO'] = 'poky-lsb'
-        runImage(factory, machine, "qt-x11-free", distrotype, False)
         runImage(factory, machine,  'core-image-lsb-qt3 core-image-lsb-sdk', distrotype, False)
         publishArtifacts(factory, machine, "build/build/tmp")
         publishArtifacts(factory, "ipk", "build/build/tmp")
