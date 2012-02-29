@@ -864,8 +864,8 @@ yocto_builders.append(b65)
 yocto_sched.append(triggerable.Triggerable(name="nightly-x86", builderNames=["nightly-x86"]))
 yocto_sched.append(triggerable.Triggerable(name="nightly-x86-64", builderNames=["nightly-x86-64"]))
 yocto_sched.append(triggerable.Triggerable(name="nightly-arm", builderNames=["nightly-arm"]))
-yocto_sched.append(triggerable.Triggerable(name="nightly-ppc", builderNames=["nightly-mips"]))
-yocto_sched.append(triggerable.Triggerable(name="nightly-mips", builderNames=["nightly-ppc"]))
+yocto_sched.append(triggerable.Triggerable(name="nightly-ppc", builderNames=["nightly-ppc"]))
+yocto_sched.append(triggerable.Triggerable(name="nightly-mips", builderNames=["nightly-mips"]))
 yocto_sched.append(triggerable.Triggerable(name="eclipse-plugin", builderNames=["eclipse-plugin"]))
 
 ################################################################################
