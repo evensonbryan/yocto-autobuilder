@@ -11,7 +11,7 @@
 # - meta-bsp target
 # - autogen adt repo
 ################################################################################
-# Copyright (C) 2011 Intel Corp.
+# Copyright (C) 2011-2012 Intel Corp.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -221,7 +221,7 @@ def createBBLayersConf(factory, btarget=None, bsplayer=False):
                                    "/build/build/conf/bblayers.conf", 'SLAVEBASEDIR' , 'SLAVEBASEDIR')],
                         timeout=60))
 
-def createAutoConf(factory, btarget=None, distro=None):
+def createAutoConf(factory, btarget=None, distro=None, buildhistory=False):
     factory.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
     factory.addStep(ShellCommand(doStepIf=getSlaveBaseDir,
                     env=copy.copy(defaultenv),
@@ -302,13 +302,13 @@ def runBSPLayerPreamble(factory, target):
                     timeout=60))
     factory.addStep(setDest(workdir=WithProperties("%s", "workdir"), btarget=target))
 
-def runImage(factory, machine, image, distro, bsplayer):
+def runImage(factory, machine, image, distro, bsplayer, buildhistory):
     factory.addStep(ShellCommand, description=["Setting up build"],
                     command=["yocto-autobuild-preamble"],
                     workdir="build", 
                     env=copy.copy(defaultenv),
                     timeout=14400)                            
-    createAutoConf(factory, btarget=machine, distro=distro)
+    createAutoConf(factory, btarget=machine, distro=distro, buildhistory=buildhistory)
     createBBLayersConf(factory, btarget=machine, bsplayer=bsplayer)
     defaultenv['MACHINE'] = machine
     factory.addStep(ShellCommand, description=["Building", machine, image],
@@ -519,7 +519,7 @@ def metaBuild(factory):
 def nightlyQEMU(factory, machine, distrotype):
     if distrotype == "poky":
         defaultenv['DISTRO'] = "poky"
-        runImage(factory, machine, 'core-image-sato core-image-sato-dev core-image-sato-sdk core-image-minimal core-image-minimal-dev', distrotype, False)
+        runImage(factory, machine, 'core-image-sato core-image-sato-dev core-image-sato-sdk core-image-minimal core-image-minimal-dev', distrotype, False, False)
         publishArtifacts(factory, machine, "build/build/tmp")
         publishArtifacts(factory, "ipk", "build/build/tmp")
         publishArtifacts(factory, "rpm", "build/build/tmp")
@@ -527,7 +527,7 @@ def nightlyQEMU(factory, machine, distrotype):
         runSanityTest(factory, machine, 'core-image-minimal')
     elif distrotype == "poky-lsb":
         defaultenv['DISTRO'] = "poky-lsb"
-        runImage(factory, machine, 'core-image-lsb core-image-lsb-dev core-image-lsb-sdk core-image-lsb-qt3', distrotype, False)
+        runImage(factory, machine, 'core-image-lsb core-image-lsb-dev core-image-lsb-sdk core-image-lsb-qt3', distrotype, False, False)
         publishArtifacts(factory, machine, "build/build/tmp")
         publishArtifacts(factory, "ipk", "build/build/tmp")
         publishArtifacts(factory, "rpm", "build/build/tmp")
@@ -538,13 +538,13 @@ def nightlyQEMU(factory, machine, distrotype):
 def nightlyBSP(factory, machine, distrotype):
     if distrotype == "poky":
         defaultenv['DISTRO'] = 'poky'
-        runImage(factory, machine, 'core-image-sato core-image-sato-sdk core-image-minimal', distrotype, False)
+        runImage(factory, machine, 'core-image-sato core-image-sato-sdk core-image-minimal', distrotype, False, False)
         publishArtifacts(factory, machine, "build/build/tmp")
         publishArtifacts(factory, "ipk", "build/build/tmp")
         publishArtifacts(factory, "rpm", "build/build/tmp")
     elif distrotype == "poky-lsb":
         defaultenv['DISTRO'] = 'poky-lsb'
-        runImage(factory, machine,  'core-image-lsb-qt3 core-image-lsb-sdk', distrotype, False)
+        runImage(factory, machine,  'core-image-lsb-qt3 core-image-lsb-sdk', distrotype, False, False)
         publishArtifacts(factory, machine, "build/build/tmp")
         publishArtifacts(factory, "ipk", "build/build/tmp")
         publishArtifacts(factory, "rpm", "build/build/tmp")
@@ -595,16 +595,27 @@ def getCleanSS(step):
     else:
         return False
 
+def runFSLBSPLayerPreamble(factory, target):
+    factory.addStep(shell.SetProperty(workdir="build",
+                    command="git rev-parse HEAD",
+                    property="POKYHASH"))
+    factory.addStep(ShellCommand,
+                    command="echo 'Checking out git://git.yoctoproject.org/meta-fsl-ppc.git'",
+                    timeout=10)
+    factory.addStep(ShellCommand(workdir="build/yocto/", command=["git", "clone",  "git://git.yoctoproject.org/meta-fsl-ppc.git"], timeout=1000))
+    factory.addStep(ShellCommand(doStepIf=getTag, workdir="build/yocto/meta-fsl-ppc", command=["git", "checkout",  WithProperties("%s", "otherbranch")], timeout=1000))
+    factory.addStep(setDest(workdir=WithProperties("%s", "workdir"), btarget=target))
+
 def buildBSPLayer(factory, distrotype, btarget):
     if distrotype == "poky":
         defaultenv['DISTRO'] = 'poky'
-        runImage(factory, btarget, 'core-image-sato core-image-sato-sdk core-image-minimal', distrotype, True)
+        runImage(factory, btarget, 'core-image-sato core-image-sato-sdk core-image-minimal', distrotype, True, False)
         publishArtifacts(factory, defaultenv['ABTARGET'], "build/build/tmp")
         publishArtifacts(factory, "ipk", "build/build/tmp")
         publishArtifacts(factory, "rpm", "build/build/tmp")
     elif distrotype == "poky-lsb":
         defaultenv['DISTRO'] = 'poky-lsb'
-        runImage(factory, btarget, 'core-image-lsb core-image-lsb-sdk', distrotype, True)
+        runImage(factory, btarget, 'core-image-lsb core-image-lsb-sdk', distrotype, True, False)
         publishArtifacts(factory, defaultenv['ABTARGET'], "build/build/tmp")
         publishArtifacts(factory, "ipk", "build/build/tmp")
         publishArtifacts(factory, "rpm", "build/build/tmp")
@@ -641,18 +652,18 @@ def publishArtifacts(factory, artifact, tmpdir):
                             timeout=14400))
             factory.addStep(ShellCommand(
                             description=["Copying i686 toolchain"],
-                            command=["sh", "-c", WithProperties("cp -R *i686* %s/toolchain/i686", "DEST")],
+                            command=["sh", "-c", WithProperties("cp -R poky-eglibc-i686* %s/toolchain/i686", "DEST")],
                             workdir=tmpdir + "/deploy/sdk",
                             env=copy.copy(defaultenv), 
                             timeout=14400))
             factory.addStep(ShellCommand(
                             description=["Making toolchain deploy dir"],
-                            command=["mkdir", '-p', WithProperties("%s/toolchain/x86-64", "DEST")],
+                            command=["mkdir", '-p', WithProperties("%s/toolchain/x86_64", "DEST")],
                             env=copy.copy(defaultenv), 
                             timeout=14400))
             factory.addStep(ShellCommand(
                             description=["Copying x86-64 toolchain"],
-                            command=["sh", "-c", WithProperties("cp -R *x86_64* %s/toolchain/x86-64", "DEST")],
+                            command=["sh", "-c", WithProperties("cp -R poky-eglibc-x86_64* %s/toolchain/x86_64", "DEST")],
                             workdir=tmpdir + "/deploy/sdk", 
                             env=copy.copy(defaultenv),
                             timeout=14400))          
@@ -683,7 +694,7 @@ def publishArtifacts(factory, artifact, tmpdir):
                             env=copy.copy(defaultenv),
                             timeout=14400))          
 
-        if artifact == "n450" or artifact=="emenlow" or artifact=="jasperforest" or artifact=="crownbay" or artifact=="fri2" or artifact=="sugarbay":
+        if artifact == "n450" or artifact=="cedartrail"  or artifact=="emenlow" or artifact=="jasperforest" or artifact.replace("-noemgd", "")=="crownbay" or artifact.replace("-noemgd", "")=="fri2" or artifact=="sugarbay" or artifact=="romley":
             factory.addStep(ShellCommand(
                             description=["Making " + artifact + " deploy dir"],
                             command=["mkdir", "-p", WithProperties("%s/machines/%s", "DEST", "ARTIFACT")],
@@ -761,7 +772,6 @@ def getSlaveBaseDir(step):
 # These are predefined buildsets used on the yocto-project production autobuilder
 #
 ################################################################################
-
 ################################################################################
 #
 # Nightly Release Builder
@@ -772,35 +782,10 @@ defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'nightly'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['REVISION'] = "HEAD"
-defaultenv['SLAVEBASEDIR'] = ""
-f65.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
-f65.addStep(ShellCommand(doStepIf=getSlaveBaseDir,
-                    env=copy.copy(defaultenv),
-                    command='echo "Getting the slave basedir"'))
-"""
-Used to clean sstate
-f65.addStep(ShellCommand,
-            description="Prepping for nightly creation by removing SSTATE",
-            command=("rm -rf /srv/www/vhosts/trash/sstate"))
-f65.addStep(ShellCommand,
-            description="Prepping for nightly creation by removing SSTATE", 
-            command=("mv /srv/www/vhosts/autobuilder.yoctoproject.org/pub/sstate /srv/www/vhosts/trash"))
-f65.addStep(ShellCommand,
-            description="Prepping for nightly creation by removing SSTATE",
-            command=("mkdir /srv/www/vhosts/autobuilder.yoctoproject.org/pub/sstate"))
-f65.addStep(ShellCommand,
-            description="Prepping for nightly creation by removing LSB-SSTATE",
-            command=("rm -rf /srv/www/vhosts/trash/lsb-sstate"))
-f65.addStep(ShellCommand,
-            description="Prepping for nightly creation by removing LSB-SSTATE", 
-            command=("mv /srv/www/vhosts/autobuilder.yoctoproject.org/pub/lsb-sstate /srv/www/vhosts/trash"))
-f65.addStep(ShellCommand,
-            description="Prepping for nightly creation by removing LSB-SSTATE",
-            command=("mkdir /srv/www/vhosts/autobuilder.yoctoproject.org/pub/lsb-sstate"))
-"""
+
 makeCheckout(f65)
 runPreamble(f65, defaultenv['ABTARGET'])
-runImage(f65, 'qemux86', 'world -c fetch', "poky", False)
+runImage(f65, 'qemux86', 'universe -c fetch', "poky", False, False)
 
 f65.addStep(Trigger(schedulerNames=['nightly-x86'],
                             updateSourceStamp=False,
@@ -830,30 +815,28 @@ f65.addStep(YoctoBlocker(idlePolicy="block", timeout=62400, upstreamSteps=[("nig
                                         ("nightly-x86", "nightly"),
                                         ("nightly-x86-64", "nightly"),
                                         ("nightly-mips", "nightly"),
-                                        ("nightly-ppc", "nightly")]))
+                                        ("nightly-ppc", "nightly"),
+                                        ("nightly-world", "nightly"),
+                                        ("nightly-tiny", "nightly"),
+                                        ("nightly-non-gpl3", "nightly")]))
+
 runPostamble(f65)
 f65.addStep(ShellCommand, 
             description="Prepping for package-index creation by copying ipks back to main builddir", workdir="build/build/tmp/deploy",
-            command=["sh", "-c", WithProperties("cp -R %s/ipk ipk", "DEST")])
+            command=["sh", "-c", WithProperties("cp -R %s/ipk ipk", "DEST")],
+            timeout=2400)
 f65.addStep(ShellCommand,
             description="Prepping for package-index creation by copying rpms back to main builddir", workdir="build/build/tmp/deploy",
-            command=["sh", "-c", WithProperties("cp -R %s/rpm rpm", "DEST")])
+            command=["sh", "-c", WithProperties("cp -R %s/rpm rpm", "DEST")],
+            timeout=2400)
 defaultenv['SDKMACHINE'] = 'i686'
-runImage(f65, 'qemux86', 'package-index', "poky", False)
+runImage(f65, 'qemux86', 'package-index', "poky", False, False)
 defaultenv['SDKMACHINE'] = 'x86_64'
-runImage(f65, 'qemux86', 'package-index', "poky", False)
+runImage(f65, 'qemux86', 'package-index', "poky", False, False)
 publishArtifacts(f65, "ipk", "build/build/tmp")
 publishArtifacts(f65, "rpm", "build/build/tmp")
-runImage(f65, 'qemux86', 'adt-installer', "poky", False)
-publishArtifacts(f65, 'adt_installer', 'build/build/tmp')
-"""
-f65.addStep(ShellCommand,
-            description="Prepping for next nightly creation",
-            command=("rm -rf /srv/www/vhosts/trash/sstate"))
-f65.addStep(ShellCommand,
-            description="Prepping for next nightly creation",
-            command=("rm -rf /srv/www/vhosts/trash/lsb-sstate"))
-"""
+runImage(f65, 'qemux86', 'adt-installer', "poky", False, False)
+publishArtifacts(f65, "adt_installer", "build/build/tmp")
 b65 = {'name': "nightly",
       'slavenames': ["builder1"],
       'builddir': "nightly",
@@ -866,7 +849,11 @@ yocto_sched.append(triggerable.Triggerable(name="nightly-x86-64", builderNames=[
 yocto_sched.append(triggerable.Triggerable(name="nightly-arm", builderNames=["nightly-arm"]))
 yocto_sched.append(triggerable.Triggerable(name="nightly-ppc", builderNames=["nightly-ppc"]))
 yocto_sched.append(triggerable.Triggerable(name="nightly-mips", builderNames=["nightly-mips"]))
+yocto_sched.append(triggerable.Triggerable(name="nightly-world", builderNames=["nightly-world"]))
+yocto_sched.append(triggerable.Triggerable(name="nightly-tiny", builderNames=["nightly-tiny"]))
+yocto_sched.append(triggerable.Triggerable(name="nightly-non-gpl3", builderNames=["nightly-non-gpl3"]))
 yocto_sched.append(triggerable.Triggerable(name="eclipse-plugin", builderNames=["eclipse-plugin"]))
+
 
 ################################################################################
 #
@@ -908,10 +895,11 @@ if PUBLISH_BUILDS == "True":
                 timeout=14400)
 b61 = {'name': "eclipse-plugin",
        'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
-      'builddir': "eclipse-plugin",
-      'factory': f61,
+       'builddir': "eclipse-plugin",
+       'factory': f61,
       }
 yocto_builders.append(b61)
+
 
 ################################################################################
 #
@@ -923,10 +911,6 @@ defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'nightly-x86'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['REVISION'] = "HEAD"
-f66.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
-f66.addStep(ShellCommand(doStepIf=getSlaveBaseDir,
-                    env=copy.copy(defaultenv),
-                    command='echo "Getting the slave basedir"'))
 makeCheckout(f66)
 runPreamble(f66, defaultenv['ABTARGET'])
 defaultenv['SDKMACHINE'] = 'i686'
@@ -934,13 +918,11 @@ f66.addStep(ShellCommand, description="Setting SDKMACHINE=i686",
             command="echo 'Setting SDKMACHINE=i686'", timeout=10)
 nightlyQEMU(f66, 'qemux86', 'poky')
 nightlyBSP(f66, 'atom-pc', 'poky')
-runImage(f66, 'qemux86', 'meta-toolchain-gmae', "poky", False)
-#publishArtifacts(f66, "toolchain", "build/build/tmp")
-#publishArtifacts(f66, "ipk", "build/build/tmp")
+runImage(f66, 'qemux86', 'meta-toolchain-gmae', defaultenv['DISTRO'], False, True)
 defaultenv['SDKMACHINE'] = 'x86_64'
 f66.addStep(ShellCommand, description="Setting SDKMACHINE=x86_64", 
             command="echo 'Setting SDKMACHINE=x86_64'", timeout=10)
-runImage(f66, 'qemux86', 'meta-toolchain-gmae', "poky", False)
+runImage(f66, 'qemux86', 'meta-toolchain-gmae', defaultenv['DISTRO'], False, True)
 publishArtifacts(f66, "toolchain", "build/build/tmp")
 publishArtifacts(f66, "ipk", "build/build/tmp")
 f66.addStep(ShellCommand, description="Moving non-lsb TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
@@ -966,31 +948,26 @@ defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'nightly-x86-64'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['REVISION'] = "HEAD"
-defaultenv['SLAVEBASEDIR'] = ''
-f67.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
 makeCheckout(f67)
 runPreamble(f67, defaultenv['ABTARGET'])
 defaultenv['SDKMACHINE'] = 'i686'
 f67.addStep(ShellCommand, description="Setting SDKMACHINE=i686", 
             command="echo 'Setting SDKMACHINE=i686'", timeout=10)
 nightlyQEMU(f67, 'qemux86-64', 'poky')
-runImage(f67, 'qemux86-64', 'meta-toolchain-gmae', "poky", False)
-#publishArtifacts(f67, "toolchain","build/build/tmp")
-#publishArtifacts(f67, "ipk", "build/build/tmp")
+runImage(f67, 'qemux86-64', 'meta-toolchain-gmae', defaultenv['DISTRO'], False, True)
 defaultenv['SDKMACHINE'] = 'x86_64'
 f67.addStep(ShellCommand, description="Setting SDKMACHINE=x86_64", 
             command="echo 'Setting SDKMACHINE=x86_64'", timeout=10)
-runImage(f67, 'qemux86-64', 'meta-toolchain-gmae', "poky", False)
+runImage(f67, 'qemux86-64', 'meta-toolchain-gmae', defaultenv['DISTRO'], False, True)
 publishArtifacts(f67, "toolchain","build/build/tmp")
 publishArtifacts(f67, "ipk", "build/build/tmp")
 f67.addStep(ShellCommand, description="Moving non-lsb TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
-defaultenv['DISTRO'] = "poky-lsb"
 nightlyQEMU(f67, 'qemux86-64', "poky-lsb")
 f67.addStep(NoOp(name="nightly"))
 b67 = {'name': "nightly-x86-64",
        'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
-      'builddir': "nightly-x86-64",
-      'factory': f67,
+       'builddir': "nightly-x86-64",
+       'factory': f67,
       }
 yocto_builders.append(b67)
 
@@ -1004,34 +981,26 @@ defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'nightly-arm'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['REVISION'] = "HEAD"
-defaultenv['SLAVEBASEDIR'] = ''
-f68.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
 makeCheckout(f68)
-##########
-# figure something out here
-##########
 runPreamble(f68, defaultenv['ABTARGET'])
 defaultenv['SDKMACHINE'] = 'i686'
 f68.addStep(ShellCommand, description="Setting SDKMACHINE=i686", 
             command="echo 'Setting SDKMACHINE=i686'", timeout=10)
 nightlyQEMU(f68, 'qemuarm', 'poky')
 nightlyBSP(f68, 'beagleboard', 'poky')
-runImage(f68, 'qemuarm', 'meta-toolchain-gmae', "poky", False)
-#publishArtifacts(f68, "toolchain", "build/build/tmp")
-#publishArtifacts(f68, "ipk", "build/build/tmp")
+runImage(f68, 'qemuarm', 'meta-toolchain-gmae', defaultenv['DISTRO'], False, True)
 defaultenv['SDKMACHINE'] = 'x86_64'
 f68.addStep(ShellCommand, description="Setting SDKMACHINE=x86_64", 
             command="echo 'Setting SDKMACHINE=x86_64'", timeout=10)
-runImage(f68, 'qemuarm', 'meta-toolchain-gmae', "poky", False)
+runImage(f68, 'qemuarm', 'meta-toolchain-gmae', defaultenv['DISTRO'], False, True)
 publishArtifacts(f68, "toolchain","build/build/tmp")
 publishArtifacts(f68, "ipk", "build/build/tmp")
 f68.addStep(ShellCommand, description="Moving non-lsb TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
-defaultenv['DISTRO'] = "poky-lsb"
 nightlyQEMU(f68, 'qemuarm', "poky-lsb")
 nightlyBSP(f68, 'beagleboard', 'poky-lsb')
 f68.addStep(NoOp(name="nightly"))
 b68 = {'name': "nightly-arm",
-       'slavenames': ["builder1", "builder1", "builder1", "builder1"],
+      'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
       'builddir': "nightly-arm",
       'factory': f68,
       }
@@ -1047,36 +1016,28 @@ defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'nightly-mips'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['REVISION'] = "HEAD"
-defaultenv['SLAVEBASEDIR'] = ''
-f69.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
 makeCheckout(f69)
-##########
-# figure something out here
-##########
 runPreamble(f69, defaultenv['ABTARGET'])
 defaultenv['SDKMACHINE'] = 'i686'
 f69.addStep(ShellCommand, description="Setting SDKMACHINE=i696", 
             command="echo 'Setting SDKMACHINE=i696'", timeout=10)
 nightlyQEMU(f69, 'qemumips', 'poky')
 nightlyBSP(f69, 'routerstationpro', 'poky')
-runImage(f69, 'qemumips', 'meta-toolchain-gmae', "poky", False)
-#publishArtifacts(f69, "toolchain", "build/build/tmp")
-#publishArtifacts(f69, "ipk", "build/build/tmp")
+runImage(f69, 'qemumips', 'meta-toolchain-gmae', defaultenv['DISTRO'], False, True)
 defaultenv['SDKMACHINE'] = 'x86_64'
 f69.addStep(ShellCommand, description="Setting SDKMACHINE=x86_64", 
             command="echo 'Setting SDKMACHINE=x86_64'", timeout=10)
-runImage(f69, 'qemumips', 'meta-toolchain-gmae', "poky", False)
+runImage(f69, 'qemumips', 'meta-toolchain-gmae', defaultenv['DISTRO'], False, True)
 publishArtifacts(f69, "toolchain", "build/build/tmp" )
 publishArtifacts(f69, "ipk", "build/build/tmp")
 f69.addStep(ShellCommand, description="Moving non-lsb TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
-defaultenv['DISTRO'] = "poky-lsb"
 nightlyQEMU(f69, 'qemumips', "poky-lsb")
 nightlyBSP(f69, 'routerstationpro', 'poky-lsb')
 f69.addStep(NoOp(name="nightly"))
 b69 = {'name': "nightly-mips",
        'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
-      'builddir': "nightly-mips",
-      'factory': f69,
+       'builddir': "nightly-mips",
+       'factory': f69,
       }
 yocto_builders.append(b69)
 
@@ -1091,35 +1052,230 @@ defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'nightly-ppc'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['REVISION'] = "HEAD"
-defaultenv['SLAVEBASEDIR'] = ''
-f70.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
 makeCheckout(f70)
 runPreamble(f70, defaultenv['ABTARGET'])
 defaultenv['SDKMACHINE'] = 'i686'
-f70.addStep(ShellCommand, description="Setting SDKMACHINE=i706", 
-            command="echo 'Setting SDKMACHINE=i706'", timeout=10)
+f70.addStep(ShellCommand, description="Setting SDKMACHINE=i686", 
+            command="echo 'Setting SDKMACHINE=i686'", timeout=10)
 nightlyQEMU(f70, 'qemuppc', 'poky')
 nightlyBSP(f70, 'mpc8315e-rdb', 'poky')
-runImage(f70, 'qemuppc', 'meta-toolchain-gmae', "poky", False)
+runImage(f70, 'qemuppc', 'meta-toolchain-gmae', defaultenv['DISTRO'], False, True)
 #publishArtifacts(f70, "toolchain", "build/build/tmp")
 #publishArtifacts(f70, "ipk", "build/build/tmp")
 defaultenv['SDKMACHINE'] = 'x86_64'
 f70.addStep(ShellCommand, description="Setting SDKMACHINE=x86_64", 
             command="echo 'Setting SDKMACHINE=x86_64'", timeout=10)
-runImage(f70, 'qemuppc', 'meta-toolchain-gmae', "poky", False)
+runImage(f70, 'qemuppc', 'meta-toolchain-gmae', defaultenv['DISTRO'], False, True)
 publishArtifacts(f70, "toolchain", "build/build/tmp")
 publishArtifacts(f70, "ipk", "build/build/tmp")
 f70.addStep(ShellCommand, description="Moving non-lsb TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
-defaultenv['DISTRO'] = "poky-lsb"
+#runImage(f70, 'qemuppc', 'qt-x11-free', False)
+#runImage(f70, 'mpc8315e-rdb', 'qt-x11-free', False)
 nightlyQEMU(f70, 'qemuppc', "poky-lsb")
 nightlyBSP(f70, 'mpc8315e-rdb', 'poky-lsb')
 f70.addStep(NoOp(name="nightly"))
 b70 = {'name': "nightly-ppc",
        'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
-      'builddir': "nightly-ppc",
-      'factory': f70,
+       'builddir': "nightly-ppc",
+       'factory': f70,
       }
 yocto_builders.append(b70)
+
+
+################################################################################
+#
+# Nightly world
+#
+################################################################################
+f75 = factory.BuildFactory()
+defaultenv['DISTRO'] = 'poky'
+defaultenv['ABTARGET'] = 'nightly-world'
+defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['REVISION'] = "HEAD"
+makeCheckout(f75)
+runPreamble(f75, defaultenv['ABTARGET'])
+f75.addStep(ShellCommand(doStepIf=getCleanSS,
+            description="Prepping for nightly creation by removing SSTATE",
+            timeout=62400,
+            command=["rm", "-rf", defaultenv['LSB_SSTATE_DIR'], defaultenv['SSTATE_DIR']]))
+makeCheckout(f75)
+runPreamble(f75, defaultenv['ABTARGET'])
+defaultenv['SDKMACHINE'] = 'i686'
+f75.addStep(ShellCommand, description="Setting SDKMACHINE=i686",
+            command="echo 'Setting SDKMACHINE=i686'", timeout=10)
+runImage(f75, 'qemux86', 'world', defaultenv['DISTRO'], False, False)
+b75 = {'name': "nightly-world",
+       'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
+       'builddir': "nightly-world",
+       'factory': f75
+      }
+yocto_builders.append(b75)
+
+
+################################################################################
+#
+# Nightly nonGPLv3
+#
+################################################################################
+f80 = factory.BuildFactory()
+defaultenv['DISTRO'] = 'poky'
+defaultenv['ABTARGET'] = 'nightly-non-gpl3'
+defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['REVISION'] = "HEAD"
+makeCheckout(f80)
+runPreamble(f80, defaultenv['ABTARGET'])
+defaultenv['SDKMACHINE'] = 'i686'
+f80.addStep(ShellCommand, description="Setting SDKMACHINE=i686",
+            command="echo 'Setting SDKMACHINE=i686'", timeout=10)
+runImage(f80, 'qemux86', 'core-image-minimal core-image-basic', defaultenv['DISTRO'], False, False)
+b80 = {'name': "nightly-non-gpl3",
+       'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
+       'builddir': "nightly-non-gpl3",
+       'factory': f80
+      }
+yocto_builders.append(b80)
+
+################################################################################
+#
+# Nightly multilib
+#
+################################################################################
+f90 = factory.BuildFactory()
+defaultenv['DISTRO'] = 'poky'
+defaultenv['ABTARGET'] = 'nightly-multilib'
+defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['REVISION'] = "HEAD"
+makeCheckout(f90)
+runPreamble(f90, defaultenv['ABTARGET'])
+defaultenv['SDKMACHINE'] = 'x86_64'
+f90.addStep(ShellCommand, description="Setting SDKMACHINE=x86_64",
+            command="echo 'Setting SDKMACHINE=x86_64'", timeout=10)
+runImage(f90, 'qemux86-64', 'lib32-core-image-minimal', defaultenv['DISTRO'], False, False)
+publishArtifacts(f90, "qemu","build/build/tmp")
+b90 = {'name': "nightly-multilib",
+       'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
+      'builddir': "nightly-multilib",
+      'factory': f90
+      }
+yocto_builders.append(b90)
+
+################################################################################
+#
+# Nightly tiny
+#
+################################################################################
+f95 = factory.BuildFactory()
+defaultenv['DISTRO'] = 'poky-tiny'
+defaultenv['ABTARGET'] = 'nightly-tiny'
+defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['REVISION'] = "HEAD"
+makeCheckout(f95)
+runPreamble(f95, defaultenv['ABTARGET'])
+f95.addStep(ShellCommand(doStepIf=getCleanSS,
+            description="Prepping for nightly creation by removing SSTATE",
+            timeout=62400,
+            command=["rm", "-rf", defaultenv['LSB_SSTATE_DIR'], defaultenv['SSTATE_DIR']]))
+makeCheckout(f95)
+runPreamble(f95, defaultenv['ABTARGET'])
+defaultenv['SDKMACHINE'] = 'i686'
+f95.addStep(ShellCommand, description="Setting SDKMACHINE=i686",
+            command="echo 'Setting SDKMACHINE=i686'", timeout=10)
+runImage(f95, 'qemux86', 'core-image-minimal', defaultenv['DISTRO'], False, False)
+publishArtifacts(f95, "qemu","build/build/tmp")
+b95 = {'name': "nightly-tiny",
+       'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
+      'builddir': "nightly-tiny",
+      'factory': f95
+      }
+yocto_builders.append(b95)
+
+################################################################################
+#
+# Nightly Release Builder
+#
+################################################################################
+f100 = factory.BuildFactory()
+defaultenv['DISTRO'] = 'poky'
+defaultenv['ABTARGET'] = 'nightly-meta-intel'
+defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['REVISION'] = "HEAD"
+makeCheckout(f100)
+runPreamble(f100, defaultenv['ABTARGET'])
+runImage(f100, 'qemux86', 'universe -c fetch', "poky", False, False)
+f100.addStep(ShellCommand, description="Making Destination Directory",
+             command=["sh", "-c", WithProperties("mkdir -p %s", "DEST")])
+
+
+f100.addStep(Trigger(schedulerNames=['crownbay'],
+                            updateSourceStamp=False,
+                            set_properties={'DEST': Property("DEST")},
+                            waitForFinish=False))
+f100.addStep(Trigger(schedulerNames=['crownbay-noemgd'],
+                            updateSourceStamp=False,
+                            set_properties={'DEST': Property("DEST")},
+                            waitForFinish=False))
+f100.addStep(Trigger(schedulerNames=['fri2'],
+                            updateSourceStamp=False,
+                            set_properties={'DEST': Property("DEST")},
+                            waitForFinish=False))
+f100.addStep(Trigger(schedulerNames=['fri2-noemgd'],
+                            updateSourceStamp=False,
+                            set_properties={'DEST': Property("DEST")},
+                            waitForFinish=False))
+f100.addStep(Trigger(schedulerNames=['emenlow'],
+                            updateSourceStamp=False,
+                            set_properties={'DEST': Property("DEST")},
+                            waitForFinish=False))
+f100.addStep(Trigger(schedulerNames=['cedartrail'],
+                            updateSourceStamp=False,
+                            set_properties={'DEST': Property("DEST")},
+                            waitForFinish=False))
+f100.addStep(Trigger(schedulerNames=['jasperforest'],
+                            updateSourceStamp=False,
+                            set_properties={'DEST': Property("DEST")},
+                            waitForFinish=False))
+f100.addStep(Trigger(schedulerNames=['n450'],
+                            updateSourceStamp=False,
+                            set_properties={'DEST': Property("DEST")},
+                            waitForFinish=False))
+f100.addStep(Trigger(schedulerNames=['sugarbay'],
+                            updateSourceStamp=False,
+                            set_properties={'DEST': Property("DEST")},
+                            waitForFinish=False))
+f100.addStep(Trigger(schedulerNames=['romley'],
+                            updateSourceStamp=False,
+                            set_properties={'DEST': Property("DEST")},
+                            waitForFinish=False))
+
+f100.addStep(YoctoBlocker(idlePolicy="block", timeout=62400, upstreamSteps=[
+                                        ("crownbay", "nightly-meta-intel"),
+                                        ("crownbay-noemgd", "nightly-meta-intel"),
+                                        ("fri2", "nightly-meta-intel"),
+                                        ("fri2-noemgd", "nightly-meta-intel"),
+                                        ("emenlow", "nightly-meta-intel"),
+                                        ("cedartrail", "nightly-meta-intel"),
+                                        ("jasperforest", "nightly-meta-intel"),
+                                        ("n450", "nightly-meta-intel"),
+                                        ("romley", "nightly-meta-intel"),
+                                        ("sugarbay", "nightly-meta-intel")]))
+runPostamble(f100)
+b100 = {'name': "nightly-meta-intel",
+      'slavenames': ["builder1"],
+      'builddir': "nightly-meta-intel",
+      'factory': f100
+      }
+yocto_builders.append(b100)
+
+yocto_sched.append(triggerable.Triggerable(name="crownbay", builderNames=["crownbay"]))
+yocto_sched.append(triggerable.Triggerable(name="crownbay-noemgd", builderNames=["crownbay-noemgd"]))
+yocto_sched.append(triggerable.Triggerable(name="fri2-noemgd", builderNames=["fri2-noemgd"]))
+yocto_sched.append(triggerable.Triggerable(name="fri2", builderNames=["fri2"]))
+yocto_sched.append(triggerable.Triggerable(name="emenlow", builderNames=["emenlow"]))
+yocto_sched.append(triggerable.Triggerable(name="cedartrail", builderNames=["cedartrail"]))
+yocto_sched.append(triggerable.Triggerable(name="jasperforest", builderNames=["jasperforest"]))
+yocto_sched.append(triggerable.Triggerable(name="n450", builderNames=["n450"]))
+yocto_sched.append(triggerable.Triggerable(name="sugarbay", builderNames=["sugarbay"]))
+yocto_sched.append(triggerable.Triggerable(name="romley", builderNames=["romley"]))
 
 #####################################################################
 #
@@ -1132,12 +1288,10 @@ defaultenv['ABTARGET'] = 'crownbay'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'crownbay'
-defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
+defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-intel.git"
 defaultenv['BSP_BRANCH'] = "master"
 defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
 defaultenv['BSP_REV'] = "HEAD"
-defaultenv['SLAVEBASEDIR'] = ''
-f170.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
 f170.addStep(ShellCommand(doStepIf=getCleanSS,
             description="Prepping for nightly creation by removing SSTATE",
             timeout=62400,
@@ -1147,10 +1301,11 @@ runPreamble(f170, defaultenv['ABTARGET'])
 runBSPLayerPreamble(f170, defaultenv['ABTARGET'])
 buildBSPLayer(f170, "poky", defaultenv['ABTARGET'])
 f170.addStep(ShellCommand, description="Moving old TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
-buildBSPLayer(f170, "poky-lsb", defaultenv['BTARGET'])
+buildBSPLayer(f170, "poky-lsb", defaultenv['ABTARGET'])
 runPostamble(f170)
+f170.addStep(NoOp(name="nightly-meta-intel"))
 b170 = {'name': "crownbay",
-       'slavenames': ["builder1"],
+       'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
        'builddir': "crownbay",
        'factory': f170}
 yocto_builders.append(b170)
@@ -1167,12 +1322,10 @@ defaultenv['ABTARGET'] = 'crownbay-noemgd'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'crownbay'
-defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
+defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-intel.git"
 defaultenv['BSP_BRANCH'] = "master"
 defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
 defaultenv['BSP_REV'] = "HEAD"
-defaultenv['SLAVEBASEDIR'] = ''
-f175.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
 f175.addStep(ShellCommand(doStepIf=getCleanSS,
             description="Prepping for nightly creation by removing SSTATE",
             timeout=62400,
@@ -1182,10 +1335,11 @@ runPreamble(f175, defaultenv['ABTARGET'])
 runBSPLayerPreamble(f175, defaultenv['ABTARGET'])
 buildBSPLayer(f175, "poky", defaultenv['ABTARGET'])
 f175.addStep(ShellCommand, description="Moving old TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
-buildBSPLayer(f175, "poky-lsb", defaultenv['BTARGET'])
+buildBSPLayer(f175, "poky-lsb", defaultenv['ABTARGET'])
 runPostamble(f175)
+f175.addStep(NoOp(name="nightly-meta-intel"))
 b175 = {'name': "crownbay-noemgd",
-       'slavenames': ["builder1"],
+       'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
        'builddir': "crownbay-noemgd",
        'factory': f175}
 yocto_builders.append(b175)
@@ -1201,12 +1355,10 @@ defaultenv['ABTARGET'] = 'emenlow'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'emenlow'
-defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
+defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-intel.git"
 defaultenv['BSP_BRANCH'] = "master"
 defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
 defaultenv['BSP_REV'] = "HEAD"
-defaultenv['SLAVEBASEDIR'] = ''
-f180.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
 f180.addStep(ShellCommand(doStepIf=getCleanSS,
             description="Prepping for nightly creation by removing SSTATE",
             timeout=62400,
@@ -1216,10 +1368,11 @@ runPreamble(f180, defaultenv['ABTARGET'])
 runBSPLayerPreamble(f180, defaultenv['ABTARGET'])
 buildBSPLayer(f180, "poky", defaultenv['ABTARGET'])
 f180.addStep(ShellCommand, description="Moving old TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
-buildBSPLayer(f180, "poky-lsb", defaultenv['BTARGET'])
+buildBSPLayer(f180, "poky-lsb", defaultenv['ABTARGET'])
 runPostamble(f180)
+f180.addStep(NoOp(name="nightly-meta-intel"))
 b180 = {'name': "emenlow",
-       'slavenames': ["builder1"],
+       'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
        'builddir': "emenlow",
        'factory': f180}
 yocto_builders.append(b180)
@@ -1235,12 +1388,10 @@ defaultenv['ABTARGET'] = 'n450'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'n450'
-defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
+defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-intel.git"
 defaultenv['BSP_BRANCH'] = "master"
 defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
 defaultenv['BSP_REV'] = "HEAD"
-defaultenv['SLAVEBASEDIR'] = ''
-f190.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
 f190.addStep(ShellCommand(doStepIf=getCleanSS,
             description="Prepping for nightly creation by removing SSTATE",
             timeout=62400,
@@ -1250,10 +1401,11 @@ runPreamble(f190, defaultenv['ABTARGET'])
 runBSPLayerPreamble(f190, defaultenv['ABTARGET'])
 buildBSPLayer(f190, "poky", defaultenv['ABTARGET'])
 f190.addStep(ShellCommand, description="Moving old TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
-buildBSPLayer(f190, "poky-lsb", defaultenv['BTARGET'])
+buildBSPLayer(f190, "poky-lsb", defaultenv['ABTARGET'])
 runPostamble(f190)
-b190 = {'name': "n450",
-       'slavenames': ["builder1"],
+f190.addStep(NoOp(name="nightly-meta-intel"))
+b190= {'name': "n450",
+       'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
        'builddir': "n450",
        'factory': f190}
 yocto_builders.append(b190)
@@ -1269,12 +1421,10 @@ defaultenv['ABTARGET'] = 'jasperforest'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'jasperforest'
-defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
+defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-intel.git"
 defaultenv['BSP_BRANCH'] = "master"
 defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
 defaultenv['BSP_REV'] = "HEAD"
-defaultenv['SLAVEBASEDIR'] = ''
-f200.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
 f200.addStep(ShellCommand(doStepIf=getCleanSS,
             description="Prepping for nightly creation by removing SSTATE",
             timeout=62400,
@@ -1284,10 +1434,11 @@ runPreamble(f200, defaultenv['ABTARGET'])
 runBSPLayerPreamble(f200, defaultenv['ABTARGET'])
 buildBSPLayer(f200, "poky", defaultenv['ABTARGET'])
 f200.addStep(ShellCommand, description="Moving old TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
-buildBSPLayer(f200, "poky-lsb", defaultenv['BTARGET'])
+buildBSPLayer(f200, "poky-lsb", defaultenv['ABTARGET'])
 runPostamble(f200)
+f200.addStep(NoOp(name="nightly-meta-intel"))
 b200 = {'name': "jasperforest",
-       'slavenames': ["builder1"],
+       'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
        'builddir': "jasperforest",
        'factory': f200}
 yocto_builders.append(b200)
@@ -1303,12 +1454,10 @@ defaultenv['ABTARGET'] = 'sugarbay'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'sugarbay'
-defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
+defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-intel.git"
 defaultenv['BSP_BRANCH'] = "master"
 defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
 defaultenv['BSP_REV'] = "HEAD"
-defaultenv['SLAVEBASEDIR'] = ''
-f210.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
 f210.addStep(ShellCommand(doStepIf=getCleanSS,
             description="Prepping for nightly creation by removing SSTATE",
             timeout=62400,
@@ -1318,10 +1467,11 @@ runPreamble(f210, defaultenv['ABTARGET'])
 runBSPLayerPreamble(f210, defaultenv['ABTARGET'])
 buildBSPLayer(f210, "poky", defaultenv['ABTARGET'])
 f210.addStep(ShellCommand, description="Moving old TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
-buildBSPLayer(f210, "poky-lsb", defaultenv['BTARGET'])
+buildBSPLayer(f210, "poky-lsb", defaultenv['ABTARGET'])
 runPostamble(f210)
+f210.addStep(NoOp(name="nightly-meta-intel"))
 b210 = {'name': "sugarbay",
-       'slavenames': ["builder1"],
+       'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
        'builddir': "sugarbay",
        'factory': f210}
 yocto_builders.append(b210)
@@ -1337,12 +1487,10 @@ defaultenv['ABTARGET'] = 'fri2-noemgd'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'fri2'
-defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
+defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-intel.git"
 defaultenv['BSP_BRANCH'] = "master"
 defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
 defaultenv['BSP_REV'] = "HEAD"
-defaultenv['SLAVEBASEDIR'] = ''
-f220.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
 f220.addStep(ShellCommand(doStepIf=getCleanSS,
             description="Prepping for nightly creation by removing SSTATE",
             timeout=62400,
@@ -1352,10 +1500,11 @@ runPreamble(f220, defaultenv['ABTARGET'])
 runBSPLayerPreamble(f220, defaultenv['ABTARGET'])
 buildBSPLayer(f220, "poky", defaultenv['ABTARGET'])
 f220.addStep(ShellCommand, description="Moving old TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
-buildBSPLayer(f220, "poky-lsb", defaultenv['BTARGET'])
+buildBSPLayer(f220, "poky-lsb", defaultenv['ABTARGET'])
 runPostamble(f220)
+f220.addStep(NoOp(name="nightly-meta-intel"))
 b220 = {'name': "fri2-noemgd",
-       'slavenames': ["builder1"],
+       'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
        'builddir': "fri2-noemgd",
        'factory': f220}
 yocto_builders.append(b220)
@@ -1371,12 +1520,10 @@ defaultenv['ABTARGET'] = 'fri2'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'fri2'
-defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
+defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-intel.git"
 defaultenv['BSP_BRANCH'] = "master"
 defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
 defaultenv['BSP_REV'] = "HEAD"
-defaultenv['SLAVEBASEDIR'] = ''
-f225.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
 f225.addStep(ShellCommand(doStepIf=getCleanSS,
             description="Prepping for nightly creation by removing SSTATE",
             timeout=62400,
@@ -1386,14 +1533,14 @@ runPreamble(f225, defaultenv['ABTARGET'])
 runBSPLayerPreamble(f225, defaultenv['ABTARGET'])
 buildBSPLayer(f225, "poky", defaultenv['ABTARGET'])
 f225.addStep(ShellCommand, description="Moving old TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
-buildBSPLayer(f225, "poky-lsb", defaultenv['BTARGET'])
+buildBSPLayer(f225, "poky-lsb", defaultenv['ABTARGET'])
 runPostamble(f225)
+f225.addStep(NoOp(name="nightly-meta-intel"))
 b225 = {'name': "fri2",
-       'slavenames': ["builder1"],
+    'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
        'builddir': "fri2",
        'factory': f225}
 yocto_builders.append(b225)
-
 
 #####################################################################
 #
@@ -1406,12 +1553,10 @@ defaultenv['ABTARGET'] = 'romley'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'romley'
-defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
+defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-intel.git"
 defaultenv['BSP_BRANCH'] = "master"
 defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
 defaultenv['BSP_REV'] = "HEAD"
-defaultenv['SLAVEBASEDIR'] = ''
-f230.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
 f230.addStep(ShellCommand(doStepIf=getCleanSS,
             description="Prepping for nightly creation by removing SSTATE",
             timeout=62400,
@@ -1423,13 +1568,85 @@ buildBSPLayer(f230, "poky", defaultenv['ABTARGET'])
 f230.addStep(ShellCommand, description="Moving old TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
 buildBSPLayer(f230, "poky-lsb", defaultenv['ABTARGET'])
 runPostamble(f230)
+f230.addStep(NoOp(name="nightly-meta-intel"))
 b230 = {'name': "romley",
-       'slavenames': ["builder1"],
+       'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
        'builddir': "romley",
        'factory': f230}
 yocto_builders.append(b230)
 
+#####################################################################
+#
+# romley buildout
+#
+#####################################################################
+f235 = factory.BuildFactory()
+defaultenv['DISTRO'] = 'poky'
+defaultenv['ABTARGET'] = 'cedartrail'
+defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['REVISION'] = "HEAD"
+defaultenv['BTARGET'] = 'cedartrail'
+defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-intel.git"
+defaultenv['BSP_BRANCH'] = "master"
+defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
+defaultenv['BSP_REV'] = "HEAD"
+f235.addStep(ShellCommand(doStepIf=getCleanSS,
+            description="Prepping for nightly creation by removing SSTATE",
+            timeout=62400,
+            command=["rm", "-rf", defaultenv['LSB_SSTATE_DIR'], defaultenv['SSTATE_DIR']]))
+makeCheckout(f235)
+runPreamble(f235, defaultenv['ABTARGET'])
+runBSPLayerPreamble(f235, defaultenv['ABTARGET'])
+buildBSPLayer(f235, "poky", defaultenv['ABTARGET'])
+f235.addStep(ShellCommand, description="Moving old TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
+buildBSPLayer(f235, "poky-lsb", defaultenv['ABTARGET'])
+runPostamble(f235)
+f235.addStep(NoOp(name="nightly-meta-intel"))
+b235 = {'name': "cedartrail",
+       'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
+       'builddir': "cedartrail",
+       'factory': f235}
+yocto_builders.append(b235)
 
+#####################################################################
+#
+# Freescale p1022ds buildout
+#
+#####################################################################
+f240 = factory.BuildFactory()
+defaultenv['DISTRO'] = 'poky'
+defaultenv['ABTARGET'] = 'p1022ds'
+defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['REVISION'] = "HEAD"
+defaultenv['BTARGET'] = 'p1022ds'
+defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-fsl-ppc.git"
+defaultenv['BSP_BRANCH'] = "master"
+defaultenv['BSP_WORKDIR'] = "build/yocto/meta-fsl-ppc"
+defaultenv['BSP_REV'] = "HEAD"
+f240.addStep(ShellCommand(doStepIf=getCleanSS,
+            description="Prepping for nightly creation by removing SSTATE",
+            timeout=62400,
+            command=["rm", "-rf", defaultenv['LSB_SSTATE_DIR'], defaultenv['SSTATE_DIR']]))
+makeCheckout(f240)
+runPreamble(f240, defaultenv['ABTARGET'])
+runFSLBSPLayerPreamble(f240, defaultenv['ABTARGET'])
+buildBSPLayer(f240, "poky", defaultenv['ABTARGET'])
+f240.addStep(ShellCommand, description="Moving old TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
+buildBSPLayer(f240, "poky-lsb", defaultenv['ABTARGET'])
+runPostamble(f240)
+b240 = {'name': "p1022ds",
+       'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
+       'builddir': "p1022ds",
+       'factory': f240}
+yocto_builders.append(b240)
+
+################################################################################
+#
+# Unsupported targets
+# These targets are older and not updated. They probably will not function 
+# correctly without some work.
+#
+################################################################################
 
 ################################################################################
 # Yocto Master Fuzzy Target
@@ -1439,11 +1656,6 @@ fuzzsched = Triggerable(name="fuzzy-master",
         builderNames=["b2"])
 defaultenv['REVISION'] = "HEAD"
 defaultenv['ABTARGET'] = 'fuzzy-master'
-defaultenv['SLAVEBASEDIR'] = ''
-f2.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
-f2.addStep(ShellCommand(doStepIf=getSlaveBaseDir,
-                    env=copy.copy(defaultenv),
-                    command='echo "Getting the slave basedir"'))
 makeCheckout(f2)
 fuzzyBuild(f2)
 f2.addStep(Trigger(schedulerNames=['fuzzymastersched'],
@@ -1454,8 +1666,8 @@ b2 = {'name': "fuzzy-master",
       'builddir': "fuzzy-master",
       'factory': f2
      }
-yocto_builders.append(b2)
-yocto_sched.append(triggerable.Triggerable(name="fuzzymastersched", builderNames=["fuzzy-master"]))
+#yocto_builders.append(b2)
+#yocto_sched.append(triggerable.Triggerable(name="fuzzymastersched", builderNames=["fuzzy-master"]))
 
 ################################################################################
 # Yocto poky-contrib master-under-test Fuzzy Target
@@ -1465,12 +1677,6 @@ fuzzsched = Triggerable(name="fuzzy-mut",
         builderNames=["b3"])
 defaultenv['REVISION'] = "HEAD"
 defaultenv['ABTARGET'] = 'fuzzy-mut'
-defaultenv['SLAVEBASEDIR'] = ''
-f3.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
-f3.addStep(ShellCommand(doStepIf=getSlaveBaseDir,
-                    env=copy.copy(defaultenv),
-                    command='echo "Getting the slave basedir"'))
-
 makeCheckout(f3)
 fuzzyBuild(f3)
 f3.addStep(Trigger(schedulerNames=['fuzzymutsched'],
@@ -1481,8 +1687,8 @@ b3 = {'name': "fuzzy-mut",
       'builddir': "fuzzy-mut",
       'factory': f3
      }
-yocto_builders.append(b3)
-yocto_sched.append(triggerable.Triggerable(name="fuzzymutsched", builderNames=["fuzzy-mut"]))
+#yocto_builders.append(b3)
+#yocto_sched.append(triggerable.Triggerable(name="fuzzymutsched", builderNames=["fuzzy-mut"]))
 
 ################################################################################
 # Selectable Targets, for when a nightly fails one or two images
@@ -1490,13 +1696,6 @@ yocto_sched.append(triggerable.Triggerable(name="fuzzymutsched", builderNames=["
 f4 = factory.BuildFactory()
 defaultenv['REVISION'] = "HEAD"
 defaultenv['ABTARGET'] = 'meta-target'
-defaultenv['SLAVEBASEDIR'] = ''
-f4.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
-f4.addStep(ShellCommand(doStepIf=getSlaveBaseDir,
-                    env=copy.copy(defaultenv),
-                    command='echo "Getting the slave basedir"'))
-
-
 makeCheckout(f4)
 metaBuild(f4)
 b4 = {'name': "meta-target",
@@ -1504,7 +1703,8 @@ b4 = {'name': "meta-target",
       'builddir': "meta-target",
       'factory': f4
      }
-yocto_builders.append(b4)
+#yocto_builders.append(b4)
+
 
 ################################################################################
 #
@@ -1519,11 +1719,6 @@ makeCheckout(f22)
 defaultenv['REVISION'] = "HEAD"
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'core-swabber-test'
-defaultenv['SLAVEBASEDIR'] = ''
-f22.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
-f22.addStep(ShellCommand(doStepIf=getSlaveBaseDir,
-                    env=copy.copy(defaultenv),
-                    command='echo "Getting the slave basedir"'))
 f22.addStep(ShellCommand, description=["Setting", "SDKMACHINE=i686"], 
             command="echo 'Setting SDKMACHINE=i686'", timeout=10)
 defaultenv['SDKMACHINE'] = 'i686'
@@ -1532,11 +1727,11 @@ f22.addStep(ShellCommand, description=["Setting", "ENABLE_SWABBER"],
 defaultenv['ENABLE_SWABBER'] = 'true'
 runPreamble(f22, defaultenv['ABTARGET'])
 defaultenv['SDKMACHINE'] = 'i686'
-runImage(f22, 'qemux86-64', 'meta-toolchain-gmae', "poky", False)
+runImage(f22, 'qemux86-64', 'meta-toolchain-gmae', defaultenv['DISTRO'], False, False)
 f22.addStep(ShellCommand, description="Setting SDKMACHINE=x86_64", 
             command="echo 'Setting SDKMACHINE=x86_64'", timeout=10)
 defaultenv['SDKMACHINE'] = 'x86_64'
-runImage(f22, 'qemux86-64', 'meta-toolchain-gmae', "poky", False)
+runImage(f22, 'qemux86-64', 'meta-toolchain-gmae', defaultenv['DISTRO'], False, False)
 if PUBLISH_BUILDS == "True":
     swabberTimeStamp = strftime("%Y%m%d%H%M%S")
     swabberTarPath = BUILD_PUBLISH_DIR + "/swabber-logs/" + swabberTimeStamp + ".tar.bz2"
@@ -1554,4 +1749,5 @@ yocto_builders.append(b22)
 #yocto_sched.append(Nightly(name="Poky Swabber Test", branch=None,
 #                                 hour=05, minute=00,
 #                                 builderNames=["core-swabber-test"])) 	
+
 
