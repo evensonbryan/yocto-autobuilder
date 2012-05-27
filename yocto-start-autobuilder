@@ -53,7 +53,8 @@ if os.path.isfile(os.path.join(AB_BASE, ".setupdone")):
     print
     print "Reading " + os.path.join(AB_BASE, "conf/autobuilder.conf")
     print 
-
+    os.environ["SLAVEBASEDIR"] = AB_BASE.strip('"') + "/yocto-slave"
+    print ' Setting %s to %s' % ("SLAVEBASEDIR", AB_BASE + "/yocto-slave")
     for section_name in parser.sections():
         for name, value in parser.items(section_name):
             print ' Setting %s to %s' % (name.upper(), value)
