@@ -889,7 +889,7 @@ publishArtifacts(f65, "rpm", "build/build/tmp")
 runImage(f65, 'qemux86', 'adt-installer', "poky", False, "yocto", False)
 publishArtifacts(f65, "adt_installer", "build/build/tmp")
 b65 = {'name': "nightly",
-      'slavenames': ["ab01.i.yoctoproject.org"],
+      'slavenames': ["builder1"],
       'builddir': "nightly",
       'factory': f65
       }
@@ -950,7 +950,7 @@ if PUBLISH_BUILDS == "True":
                 timeout=14400)
 f61.addStep(NoOp(name="nightly"))
 b61 = {'name': "eclipse-plugin",
-      'slavenames': ["ab01.i.yoctoproject.org"],
+      'slavenames': ["builder1"],
       'builddir': "eclipse-plugin",
       'factory': f61,
       }
@@ -987,7 +987,7 @@ nightlyBSP(f66, 'atom-pc', 'poky-lsb', "yocto")
 nightlyQEMU(f66, 'qemux86', "poky-rt", "yocto")
 f66.addStep(NoOp(name="nightly"))
 b66 = {'name': "nightly-x86",
-      'slavenames': ["ab02",  "ab04", "ab05", "ab06"],
+      'slavenames': ["builder1"],
       'builddir': "nightly-x86",
       'factory': f66,
       }
@@ -1021,7 +1021,7 @@ nightlyQEMU(f67, 'qemux86-64', "poky-lsb", "yocto")
 nightlyQEMU(f67, 'qemux86-64', 'poky-rt', "yocto")
 f67.addStep(NoOp(name="nightly"))
 b67 = {'name': "nightly-x86-64",
-      'slavenames': ["ab02",  "ab04", "ab05", "ab06"],
+      'slavenames': ["builder1"],
       'builddir': "nightly-x86-64",
       'factory': f67,
       }
@@ -1056,7 +1056,7 @@ nightlyQEMU(f68, 'qemuarm', "poky-lsb", "yocto")
 nightlyBSP(f68, 'beagleboard', 'poky-lsb', "yocto")
 f68.addStep(NoOp(name="nightly"))
 b68 = {'name': "nightly-arm",
-      'slavenames': ["ab02",  "ab04", "ab05", "ab06"],
+      'slavenames': ["builder1"],
       'builddir': "nightly-arm",
       'factory': f68,
       }
@@ -1091,7 +1091,7 @@ nightlyQEMU(f69, 'qemumips', "poky-lsb", "yocto")
 nightlyBSP(f69, 'routerstationpro', 'poky-lsb', "yocto")
 f69.addStep(NoOp(name="nightly"))
 b69 = {'name': "nightly-mips",
-      'slavenames': ["ab02",  "ab04", "ab05", "ab06"],
+      'slavenames': ["builder1"],
       'builddir': "nightly-mips",
       'factory': f69,
       }
@@ -1127,7 +1127,7 @@ nightlyQEMU(f70, 'qemuppc', 'poky-lsb', 'yocto')
 nightlyBSP(f70, 'mpc8315e-rdb', 'poky-lsb' , 'yocto')
 f70.addStep(NoOp(name="nightly"))
 b70 = {'name': "nightly-ppc",
-      'slavenames': ["ab02",  "ab04", "ab05", "ab06"],
+      'slavenames': ["builder1"],
       'builddir': "nightly-ppc",
       'factory': f70,
       }
@@ -1158,7 +1158,7 @@ f75.addStep(ShellCommand, description="Setting SDKMACHINE=i686",
 runImage(f75, 'qemux86', 'world', defaultenv['DISTRO'], False, "yocto", False)
 f75.addStep(NoOp(name="nightly"))
 b75 = {'name': "nightly-world",
-      'slavenames': ["ab02",  "ab04", "ab05", "ab06"],
+      'slavenames': ["builder1"],
       'builddir': "nightly-world",
       'factory': f75
       }
@@ -1183,7 +1183,7 @@ f80.addStep(ShellCommand, description="Setting SDKMACHINE=i686",
 runImage(f80, 'qemux86', 'core-image-minimal core-image-basic', defaultenv['DISTRO'], False, "yocto", False)
 f80.addStep(NoOp(name="nightly"))
 b80 = {'name': "nightly-non-gpl3",
-      'slavenames': ["ab02",  "ab04", "ab05", "ab06"],
+      'slavenames': ["builder1"],
       'builddir': "nightly-non-gpl3",
       'factory': f80
       }
@@ -1208,7 +1208,7 @@ runImage(f90, 'qemux86-64', 'lib32-core-image-minimal', defaultenv['DISTRO'], Fa
 publishArtifacts(f90, "qemu","build/build/tmp")
 f90.addStep(NoOp(name="nightly"))
 b90 = {'name': "nightly-multilib",
-      'slavenames': ["ab02",  "ab04", "ab05", "ab06"],
+      'slavenames': ["builder1"],
       'builddir': "nightly-multilib",
       'factory': f90
       }
@@ -1239,7 +1239,7 @@ runImage(f95, 'qemux86', 'core-image-minimal', defaultenv['DISTRO'], False, "yoc
 publishArtifacts(f95, "qemux86-tiny","build/build/tmp")
 f95.addStep(NoOp(name="nightly"))
 b95 = {'name': "nightly-tiny",
-      'slavenames': ["ab02",  "ab04", "ab05", "ab06"],
+      'slavenames': ["builder1"],
       'builddir': "nightly-tiny",
       'factory': f95
       }
@@ -1313,7 +1313,7 @@ f100.addStep(YoctoBlocker(idlePolicy="block", timeout=62400, upstreamSteps=[
                                         ("sugarbay", "nightly-meta-intel")]))
 runPostamble(f100)
 b100 = {'name': "nightly-meta-intel",
-      'slavenames': ["ab03"],
+      'slavenames': ["builder1"],
       'builddir': "nightly-meta-intel",
       'factory': f100
       }
@@ -1358,7 +1358,7 @@ buildBSPLayer(f170, "poky-lsb", defaultenv['ABTARGET'], "intel")
 runPostamble(f170)
 f170.addStep(NoOp(name="nightly-meta-intel"))
 b170 = {'name': "crownbay",
-       'slavenames': ["ab03", "ab07", "ab08", "ab09"],
+       'slavenames': ["builder1"],
        'builddir': "crownbay",
        'factory': f170}
 yocto_builders.append(b170)
@@ -1392,7 +1392,7 @@ buildBSPLayer(f175, "poky-lsb", defaultenv['ABTARGET'], "intel")
 runPostamble(f175)
 f175.addStep(NoOp(name="nightly-meta-intel"))
 b175 = {'name': "crownbay-noemgd",
-       'slavenames': ["ab03", "ab07", "ab08", "ab09"],
+       'slavenames': ["builder1"],
        'builddir': "crownbay-noemgd",
        'factory': f175}
 yocto_builders.append(b175)
@@ -1425,7 +1425,7 @@ buildBSPLayer(f180, "poky-lsb", defaultenv['ABTARGET'], "intel")
 runPostamble(f180)
 f180.addStep(NoOp(name="nightly-meta-intel"))
 b180 = {'name': "emenlow",
-       'slavenames': ["ab03", "ab07", "ab08", "ab09"],
+       'slavenames': ["builder1"],
        'builddir': "emenlow",
        'factory': f180}
 yocto_builders.append(b180)
@@ -1458,7 +1458,7 @@ buildBSPLayer(f190, "poky-lsb", defaultenv['ABTARGET'], "intel")
 runPostamble(f190)
 f190.addStep(NoOp(name="nightly-meta-intel"))
 b190= {'name': "n450",
-       'slavenames': ["ab03", "ab07", "ab08", "ab09"],
+       'slavenames': ["builder1"],
        'builddir': "n450",
        'factory': f190}
 yocto_builders.append(b190)
@@ -1491,7 +1491,7 @@ buildBSPLayer(f200, "poky-lsb", defaultenv['ABTARGET'], "intel")
 runPostamble(f200)
 f200.addStep(NoOp(name="nightly-meta-intel"))
 b200 = {'name': "jasperforest",
-       'slavenames': ["ab03", "ab07", "ab08", "ab09"],
+       'slavenames': ["builder1"],
        'builddir': "jasperforest",
        'factory': f200}
 yocto_builders.append(b200)
@@ -1524,7 +1524,7 @@ buildBSPLayer(f210, "poky-lsb", defaultenv['ABTARGET'], "intel")
 runPostamble(f210)
 f210.addStep(NoOp(name="nightly-meta-intel"))
 b210 = {'name': "sugarbay",
-       'slavenames': ["ab03", "ab07", "ab08", "ab09"],
+       'slavenames': ["builder1"],
        'builddir': "sugarbay",
        'factory': f210}
 yocto_builders.append(b210)
@@ -1557,7 +1557,7 @@ buildBSPLayer(f220, "poky-lsb", defaultenv['ABTARGET'], "intel")
 runPostamble(f220)
 f220.addStep(NoOp(name="nightly-meta-intel"))
 b220 = {'name': "fri2-noemgd",
-       'slavenames': ["ab03", "ab07", "ab08", "ab09"],
+       'slavenames': ["builder1"],
        'builddir': "fri2-noemgd",
        'factory': f220}
 yocto_builders.append(b220)
@@ -1590,7 +1590,7 @@ buildBSPLayer(f225, "poky-lsb", defaultenv['ABTARGET'], "intel")
 runPostamble(f225)
 f225.addStep(NoOp(name="nightly-meta-intel"))
 b225 = {'name': "fri2",
-       'slavenames': ["ab03", "ab07", "ab08", "ab09"],
+       'slavenames': ["builder1"],
        'builddir': "fri2",
        'factory': f225}
 yocto_builders.append(b225)
@@ -1623,7 +1623,7 @@ buildBSPLayer(f230, "poky-lsb", defaultenv['ABTARGET'], "intel")
 runPostamble(f230)
 f230.addStep(NoOp(name="nightly-meta-intel"))
 b230 = {'name': "romley",
-       'slavenames': ["ab03", "ab07", "ab08", "ab09"],
+       'slavenames': ["builder1"],
        'builddir': "romley",
        'factory': f230}
 yocto_builders.append(b230)
@@ -1656,7 +1656,7 @@ buildBSPLayer(f235, "poky-lsb", defaultenv['ABTARGET'], "intel")
 runPostamble(f235)
 f235.addStep(NoOp(name="nightly-meta-intel"))
 b235 = {'name': "cedartrail",
-       'slavenames': ["ab03", "ab07", "ab08", "ab09"],
+       'slavenames': ["builder1"],
        'builddir': "cedartrail",
        'factory': f235}
 yocto_builders.append(b235)
@@ -1676,7 +1676,7 @@ f2.addStep(Trigger(schedulerNames=['fuzzymastersched'],
                            updateSourceStamp=False,
                            waitForFinish=False))
 b2 = {'name': "fuzzy-master",
-      'slavenames': ["builder1",  "builder1"],
+      'slavenames': ["builder1", "builder1"],
       'builddir': "fuzzy-master",
       'factory': f2
      }
@@ -1697,7 +1697,7 @@ f3.addStep(Trigger(schedulerNames=['fuzzymutsched'],
                            updateSourceStamp=False,
                            waitForFinish=False))
 b3 = {'name': "fuzzy-mut",
-      'slavenames': ["builder1",  "builder1"],
+      'slavenames': ["builder1", "builder1"],
       'builddir': "fuzzy-mut",
       'factory': f3
      }
@@ -1713,7 +1713,7 @@ defaultenv['ABTARGET'] = 'meta-target'
 makeCheckout(f4)
 metaBuild(f4)
 b4 = {'name': "meta-target",
-      'slavenames': ["builder1",  "builder1"],
+      'slavenames': ["builder1", "builder1"],
       'builddir': "meta-target",
       'factory': f4
      }
@@ -1753,7 +1753,7 @@ if PUBLISH_BUILDS == "True":
                 command="tar cjf " + swabberTarPath + " build/tmp/log", 
                 timeout=10000)
 b22 = {'name': "core-swabber-test",
-      'slavenames': ["ab02",  "ab04", "ab05", "ab06"],
+      'slavenames': ["builder1"],
       'builddir': "core-swabber-test",
       'factory': f22
      }
@@ -1809,7 +1809,7 @@ if PUBLISH_BUILDS == "True":
 
 
 b62 = {'name': "eclipse-plugin-helios",
-      'slavenames': ["ab02",  "ab04", "ab05", "ab06"],
+      'slavenames': ["builder1"],
       'builddir': "eclipse-plugin-helios",
       'factory': f62,
       }
@@ -1842,7 +1842,7 @@ f240.addStep(ShellCommand, description="Moving old TMPDIR", workdir="build/build
 buildBSPLayer(f240, "poky-lsb", defaultenv['ABTARGET'], "fsl")
 runPostamble(f240)
 b240 = {'name': "p1022ds",
-        'slavenames': ["ab02",  "ab04", "ab05", "ab06"],
+        'slavenames': ["builder1"],
         'builddir': "p1022ds",
         'factory': f240}
 yocto_builders.append(b240)
