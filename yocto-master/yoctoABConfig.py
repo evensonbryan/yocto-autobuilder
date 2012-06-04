@@ -55,7 +55,6 @@ layerid = 0
 SOURCE_DL_DIR = os.environ.get("SOURCE_DL_DIR")
 LSB_SSTATE_DIR = os.environ.get("LSB_SSTATE_DIR")
 SOURCE_SSTATE_DIR = os.environ.get("SOURCE_SSTATE_DIR")
-CLEAN_SOURCE_DIR = os.environ.get("CLEAN_SOURCE_DIR")
 PUBLISH_BUILDS = os.environ.get("PUBLISH_BUILDS")
 PUBLISH_SOURCE_MIRROR = os.environ.get("PUBLISH_SOURCE_MIRROR")
 PUBLISH_SSTATE = os.environ.get("PUBLISH_SSTATE")
