@@ -318,7 +318,7 @@ def doMasterTest(step):
 def doNightlyArchTest(step):
     buildername = step.getProperty("buildername")
     branch = step.getProperty("branch")
-    if "nightly-" in buildername and buildername != "nightly-meta-intel" and branch == "master" and BUILD_HISTORY_COLLECT is True:
+    if "nightly-" in buildername and buildername != "nightly-meta-intel" and branch == "master" and BUILD_HISTORY_COLLECT is "True":
         return True
     else:
         return False
