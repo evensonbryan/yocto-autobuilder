@@ -4,7 +4,7 @@
 # takes output generated during an autobuidler build set and copies it
 # into the sepcified deployment base directory.
 #
-# Copyright (C) 2011 Intel Corp.
+# Copyright (C) 2011-2012 Intel Corp.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

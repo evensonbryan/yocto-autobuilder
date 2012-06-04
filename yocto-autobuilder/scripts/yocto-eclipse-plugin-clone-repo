@@ -6,7 +6,7 @@
 # Note: this script does not have a build 'mode' as it is only run
 # when building the eclipse plugin within an existing Poky build.
 #
-# Copyright (C) 2011 Intel Corp.
+# Copyright (C) 2011-2012 Intel Corp.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

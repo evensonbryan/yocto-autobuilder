@@ -3,7 +3,7 @@
 # Copy the Eclipse tools needed for building Eclipse plugins. These are
 # expected to be stored in a cache directory TOOLCACHE
 #
-# Copyright (C) 2011 Intel Corp.
+# Copyright (C) 2011-2012 Intel Corp.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
