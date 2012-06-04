@@ -701,7 +701,7 @@ def publishArtifacts(factory, artifact, tmpdir):
                             timeout=14400))
             factory.addStep(ShellCommand(
                             description=["Making toolchain deploy dir"],
-                            command=["mkdir", '-p', WithProperties("%s/toolchain/x86-64", "DEST")],
+                            command=["mkdir", '-p', WithProperties("%s/toolchain/x86_64", "DEST")],
                             env=copy.copy(defaultenv), 
                             timeout=14400))
             factory.addStep(ShellCommand(
