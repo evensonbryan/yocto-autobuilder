@@ -261,7 +261,7 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
     fout = fout + 'PARALLEL_MAKE = "-j 16"\n'
     fout = fout + 'SDKMACHINE ?= "i586"\n'
     fout = fout + 'DL_DIR = "' + defaultenv['DL_DIR']+'"\n'
-    if str(btarget) == "fri2" or str(btarget) == "crownbay":
+    if str(btarget) == "fri2" or str(btarget) == "crownbay" or str(btarget) == "sys940x":
         fout = fout + 'LICENSE_FLAGS_WHITELIST = "license_emgd-driver-bin_1.10" \n'
     if str(btarget) == "cedartrail":
         fout = fout + 'LICENSE_FLAGS_WHITELIST += "license_cdv-pvr-driver_1.0" \n'
@@ -1292,6 +1292,10 @@ f100.addStep(Trigger(schedulerNames=['sys940x'],
                             updateSourceStamp=False,
                             set_properties={'DEST': Property("DEST")},
                             waitForFinish=False))
+f100.addStep(Trigger(schedulerNames=['sys940x-noemgd'],
+                            updateSourceStamp=False,
+                            set_properties={'DEST': Property("DEST")},
+                            waitForFinish=False))
 f100.addStep(Trigger(schedulerNames=['cedartrail'],
                             updateSourceStamp=False,
                             set_properties={'DEST': Property("DEST")},
@@ -1320,6 +1324,7 @@ f100.addStep(YoctoBlocker(idlePolicy="block", timeout=62400, upstreamSteps=[
                                         ("fri2-noemgd", "nightly-meta-intel"),
                                         ("emenlow", "nightly-meta-intel"),
                                         ("sys940x", "nightly-meta-intel"),
+                                        ("sys940x-noemgd", "nightly-meta-intel"),
                                         ("cedartrail", "nightly-meta-intel"),
                                         ("jasperforest", "nightly-meta-intel"),
                                         ("n450", "nightly-meta-intel"),
@@ -1337,6 +1342,8 @@ yocto_sched.append(triggerable.Triggerable(name="crownbay", builderNames=["crown
 yocto_sched.append(triggerable.Triggerable(name="crownbay-noemgd", builderNames=["crownbay-noemgd"]))
 yocto_sched.append(triggerable.Triggerable(name="fri2-noemgd", builderNames=["fri2-noemgd"]))
 yocto_sched.append(triggerable.Triggerable(name="fri2", builderNames=["fri2"]))
+yocto_sched.append(triggerable.Triggerable(name="sys940x", builderNames=["sys940x"]))
+yocto_sched.append(triggerable.Triggerable(name="sys940x-noemgd", builderNames=["sys940x-noemgd"]))
 yocto_sched.append(triggerable.Triggerable(name="emenlow", builderNames=["emenlow"]))
 yocto_sched.append(triggerable.Triggerable(name="cedartrail", builderNames=["cedartrail"]))
 yocto_sched.append(triggerable.Triggerable(name="jasperforest", builderNames=["jasperforest"]))
@@ -1708,7 +1715,38 @@ b240 = {'name': "sys940x",
        'factory': f240}
 yocto_builders.append(b240)
 
-
+#####################################################################
+#
+# sys940x-noemgd Buildout
+#
+#####################################################################
+f245 = factory.BuildFactory()
+defaultenv['DISTRO'] = 'poky'
+defaultenv['ABTARGET'] = 'sys940x-noemgd'
+defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['REVISION'] = "HEAD"
+defaultenv['BTARGET'] = 'sys940x'
+defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-intel.git"
+defaultenv['BSP_BRANCH'] = "master"
+defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
+defaultenv['BSP_REV'] = "HEAD"
+f245.addStep(ShellCommand(doStepIf=getCleanSS,
+            description="Prepping for nightly creation by removing SSTATE",
+            timeout=62400,
+            command=["rm", "-rf", defaultenv['LSB_SSTATE_DIR'], defaultenv['SSTATE_DIR']]))
+makeCheckout(f245)
+runPreamble(f245, defaultenv['ABTARGET'])
+runBSPLayerPreamble(f245, defaultenv['ABTARGET'], "intel")
+buildBSPLayer(f245, "poky", defaultenv['ABTARGET'], "intel")
+f245.addStep(ShellCommand, description="Moving old TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
+buildBSPLayer(f245, "poky-lsb", defaultenv['ABTARGET'], "intel")
+runPostamble(f245)
+f245.addStep(NoOp(name="nightly-meta-intel"))
+b245 = {'name': "sys940x-noemgd",
+       'slavenames': ["builder1"],
+       'builddir': "sys940x-noemgd",
+       'factory': f245}
+yocto_builders.append(b245)
 
 ################################################################################
 # Yocto Master Fuzzy Target
