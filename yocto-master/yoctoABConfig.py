@@ -55,6 +55,7 @@ layerid = 0
 SOURCE_DL_DIR = os.environ.get("SOURCE_DL_DIR")
 LSB_SSTATE_DIR = os.environ.get("LSB_SSTATE_DIR")
 SOURCE_SSTATE_DIR = os.environ.get("SOURCE_SSTATE_DIR")
+CLEAN_SOURCE_DIR = os.environ.get("CLEAN_SOURCE_DIR")
 PUBLISH_BUILDS = os.environ.get("PUBLISH_BUILDS")
 PUBLISH_SOURCE_MIRROR = os.environ.get("PUBLISH_SOURCE_MIRROR")
 PUBLISH_SSTATE = os.environ.get("PUBLISH_SSTATE")
@@ -70,7 +71,13 @@ if not BUILD_PUBLISH_DIR:
     BUILD_PUBLISH_DIR = "/tmp"
 BUILD_HISTORY_COLLECT = os.environ.get("BUILD_HISTORY_COLLECT")
 BUILD_HISTORY_REPO = os.environ.get("BUILD_HISTORY_REPO")
-
+# Very useful way of grabbing nightly-arch names
+nightly_arch = []
+nightly_arch.append("x86")
+nightly_arch.append("x86-64")
+nightly_arch.append("arm")
+nightly_arch.append("mips")
+nightly_arch.append("ppc")
 
 # Trying to access Properties within a factory can sometimes be problematic.
 # This is here for convenience.
@@ -237,7 +244,7 @@ def createBBLayersConf(factory, defaultenv, btarget=None, bsplayer=False, provid
                     command="echo '" +  fout + "'>>" + BBLAYER,
                     timeout=60))
 
-def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=False):
+def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory="False"):
     factory.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
     factory.addStep(ShellCommand(doStepIf=getSlaveBaseDir,
                     env=copy.copy(defaultenv),
@@ -256,6 +263,8 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
     fout = fout + 'DL_DIR = "' + defaultenv['DL_DIR']+'"\n'
     if str(btarget) == "fri2" or str(btarget) == "crownbay":
         fout = fout + 'LICENSE_FLAGS_WHITELIST = "license_emgd-driver-bin_1.10" \n'
+    if str(btarget) == "cedartrail":
+        fout = fout + 'LICENSE_FLAGS_WHITELIST += "license_cdv-pvr-driver_1.0" \n'
     if "lsb" in distro:
         fout = fout + 'SSTATE_DIR ?= "' + defaultenv['LSB_SSTATE_DIR']+'"\n'
     else:
@@ -270,7 +279,7 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
         fout = fout + 'PREFERRED_PROVIDER_virtual/kernel="linux-yocto-rt" \n'
     fout = fout + 'MACHINE = "' + str(btarget) + '"\n'
     fout = fout + 'PREMIRRORS = ""\n'
-    if defaultenv['ENABLE_SWABBER'] == 'true':
+    if defaultenv['ENABLE_SWABBER'] == "True":
         fout = fout + 'USER_CLASSES += "image-prelink image-swab"\n'
     if PUBLISH_BUILDS == "True":
         fout = fout + 'BB_GENERATE_MIRROR_TARBALLS = "1"\n'           
@@ -286,20 +295,20 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
     factory.addStep(SetPropertiesFromEnv(variables=["BUILD_HISTORY_DIR"]))
     factory.addStep(SetPropertiesFromEnv(variables=["BUILD_HISTORY_REPO"]))
     factory.addStep(SetPropertiesFromEnv(variables=["BUILD_HISTORY_COLLECT"]))
-    if buildhistory is True and defaultenv['BUILD_HISTORY_COLLECT'] is True:
+    if buildhistory is "True" and defaultenv['BUILD_HISTORY_COLLECT'] is "True":
         fout = fout + 'INHERIT += "buildhistory"\n'
         fout = fout + 'BUILDHISTORY_COMMIT = "1"\n'
         fout = fout + 'BUILDHISTORY_DIR = "' + defaultenv['BUILD_HISTORY_DIR'] + '/' + defaultenv['ABTARGET'] + '/poky-buildhistory"\n'
         fout = fout + 'BUILDHISTORY_PUSH_REPO = "' + defaultenv['BUILD_HISTORY_REPO'] + ' ' + defaultenv['ABTARGET'] + ':' + defaultenv['ABTARGET'] + '"\n'
-        factory.addStep(ShellCommand(doStepIf=doMasterTest, description="Adding buildhistory to auto.conf",
+        factory.addStep(ShellCommand(doStepIf=doNightlyArchTest, description="Adding buildhistory to auto.conf",
                         command="echo '" +  fout + "'>>" + AUTOCONF,
                         timeout=60))
-        factory.addStep(ShellCommand(doStepIf=doMasterTest,
+        factory.addStep(ShellCommand(doStepIf=doNightlyArchTest,
                         description="Syncing Local Build History Repo",
                         workdir=defaultenv['BUILD_HISTORY_DIR'] + defaultenv['ABTARGET'] + "/poky-buildhistory",
                         command=["git", "pull", "origin", defaultenv['ABTARGET']],
                         timeout=2000))
-    if defaultenv['ENABLE_SWABBER'] == 'True':
+    if defaultenv['ENABLE_SWABBER'] == "True":
         fout = fout + 'USER_CLASSES += "image-prelink image-swab"\n'
     if PUBLISH_SOURCE_MIRROR == "True":
         fout = fout + 'BB_GENERATE_MIRROR_TARBALLS = "1"\n'           
@@ -317,10 +326,11 @@ def doMasterTest(step):
 def doNightlyArchTest(step):
     buildername = step.getProperty("buildername")
     branch = step.getProperty("branch")
-    if "nightly-" in buildername and buildername != "nightly-meta-intel" and branch == "master" and BUILD_HISTORY_COLLECT is "True":
-        return True
-    else:
-        return False
+    for arch in nightly_arch:
+        if "nightly-" + arch is buildername and branch == "master" and BUILD_HISTORY_COLLECT == "True":
+            return True
+        else:
+            return False
 
 def runBSPLayerPreamble(factory, target, provider):
     factory.addStep(shell.SetProperty(workdir="build", 
@@ -1278,6 +1288,10 @@ f100.addStep(Trigger(schedulerNames=['emenlow'],
                             updateSourceStamp=False,
                             set_properties={'DEST': Property("DEST")},
                             waitForFinish=False))
+f100.addStep(Trigger(schedulerNames=['sys940x'],
+                            updateSourceStamp=False,
+                            set_properties={'DEST': Property("DEST")},
+                            waitForFinish=False))
 f100.addStep(Trigger(schedulerNames=['cedartrail'],
                             updateSourceStamp=False,
                             set_properties={'DEST': Property("DEST")},
@@ -1305,6 +1319,7 @@ f100.addStep(YoctoBlocker(idlePolicy="block", timeout=62400, upstreamSteps=[
                                         ("fri2", "nightly-meta-intel"),
                                         ("fri2-noemgd", "nightly-meta-intel"),
                                         ("emenlow", "nightly-meta-intel"),
+                                        ("sys940x", "nightly-meta-intel"),
                                         ("cedartrail", "nightly-meta-intel"),
                                         ("jasperforest", "nightly-meta-intel"),
                                         ("n450", "nightly-meta-intel"),
@@ -1629,7 +1644,7 @@ yocto_builders.append(b230)
 
 #####################################################################
 #
-# romley buildout
+# cedartrail buildout
 #
 #####################################################################
 f235 = factory.BuildFactory()
@@ -1659,6 +1674,40 @@ b235 = {'name': "cedartrail",
        'builddir': "cedartrail",
        'factory': f235}
 yocto_builders.append(b235)
+
+#####################################################################
+#
+# sys940x buildout
+#
+#####################################################################
+f240 = factory.BuildFactory()
+defaultenv['DISTRO'] = 'poky'
+defaultenv['ABTARGET'] = 'sys940x'
+defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['REVISION'] = "HEAD"
+defaultenv['BTARGET'] = 'sys940x'
+defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-intel.git"
+defaultenv['BSP_BRANCH'] = "master"
+defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
+defaultenv['BSP_REV'] = "HEAD"
+f240.addStep(ShellCommand(doStepIf=getCleanSS,
+            description="Prepping for nightly creation by removing SSTATE",
+            timeout=62400,
+            command=["rm", "-rf", defaultenv['LSB_SSTATE_DIR'], defaultenv['SSTATE_DIR']]))
+makeCheckout(f240)
+runPreamble(f240, defaultenv['ABTARGET'])
+runBSPLayerPreamble(f240, defaultenv['ABTARGET'], "intel")
+buildBSPLayer(f240, "poky", defaultenv['ABTARGET'], "intel")
+f240.addStep(ShellCommand, description="Moving old TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
+buildBSPLayer(f240, "poky-lsb", defaultenv['ABTARGET'], "intel")
+runPostamble(f240)
+f240.addStep(NoOp(name="nightly-meta-intel"))
+b240 = {'name': "sys940x",
+       'slavenames': ["builder1"],
+       'builddir': "sys940x",
+       'factory': f240}
+yocto_builders.append(b240)
+
 
 
 ################################################################################
