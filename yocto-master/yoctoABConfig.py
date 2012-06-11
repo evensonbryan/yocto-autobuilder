@@ -20,6 +20,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 import copy, random, os, datetime 
+import cPickle as pickle
 from time import strftime
 from email.Utils import formatdate
 from twisted.python import log
@@ -52,6 +53,7 @@ yocto_builders = []
 defaultenv = {}
 layerid = 0
 
+ABBASE = os.environ.get("PWD")
 SOURCE_DL_DIR = os.environ.get("SOURCE_DL_DIR")
 LSB_SSTATE_DIR = os.environ.get("LSB_SSTATE_DIR")
 SOURCE_SSTATE_DIR = os.environ.get("SOURCE_SSTATE_DIR")
@@ -89,6 +91,7 @@ defaultenv['FuzzSDK'] = ""
 defaultenv['machine'] = ""
 defaultenv['DEST'] = ""
 defaultenv['BRANCH'] = ""
+defaultenv['POKYREPO'] = ""
 defaultenv['SDKMACHINE'] = "i686"
 defaultenv['DL_DIR'] = SOURCE_DL_DIR
 defaultenv['LSB_SSTATE_DIR'] = LSB_SSTATE_DIR
@@ -98,6 +101,7 @@ defaultenv['BUILD_HISTORY_DIR'] = BUILD_HISTORY_DIR
 defaultenv['BUILD_HISTORY_REPO'] = BUILD_HISTORY_REPO
 defaultenv['EMGD_DRIVER_DIR'] = EMGD_DRIVER_DIR
 defaultenv['SLAVEBASEDIR'] = SLAVEBASEDIR
+defaultenv['ABBASE'] = ABBASE
 
 class NoOp(buildstep.BuildStep):
     """
@@ -114,14 +118,15 @@ class NoOp(buildstep.BuildStep):
         self.finished(self.result)
 
 class setDest(LoggingBuildStep):
-    renderables = [ 'workdir', 'btarget' ]
+    renderables = [ 'abbase', 'workdir', 'btarget' ]
     
-    def __init__(self, workdir=None, btarget=None, **kwargs):
+    def __init__(self, abbase=None, workdir=None, btarget=None, **kwargs):
         LoggingBuildStep.__init__(self, **kwargs)
         self.workdir = workdir
+        self.abbase = abbase
         self.btarget = btarget
         self.description = ["Setting", "Destination"]
-        self.addFactoryArguments(workdir=workdir, btarget=btarget)
+        self.addFactoryArguments(abbase=abbase, workdir=workdir, btarget=btarget)
 
     def describe(self, done=False):
         return self.description
@@ -137,12 +142,27 @@ class setDest(LoggingBuildStep):
 	        self.getProperty('DEST')
         except:
             DEST = os.path.join(BUILD_PUBLISH_DIR.strip('"').strip("'"), self.btarget)
-            REV = 1
             DEST_DATE=datetime.datetime.now().strftime("%Y%m%d")
-            while os.path.exists(os.path.join(DEST, DEST_DATE + "-" + str(REV))):
-                REV = REV + 1
-                print os.path.join(DEST, DEST_DATE + "-" + str(REV)) 
-            DEST=os.path.join(os.path.join(DEST, DEST_DATE + "-" + str(REV)))
+            DATA_FILE = os.path.join(self.abbase, self.btarget + "_dest.dat")
+            pfile = open(DATA_FILE, 'ab+')
+            try: 
+				data = pickle.load(pfile)
+            except:
+                data = {}
+            # we can't os.path.exists here as we don't neccessarily have
+            # access to the slave dest from master. So we keep a cpickle of 
+            # the dests.
+            try:
+                # if the list entry exists, we increment value by one, then repickle
+                REV=data[os.path.join(DEST, DEST_DATE)]
+                REV=int(REV) + 1
+                data[os.path.join(DEST, DEST_DATE)]=int(REV) + 1
+            except:
+                data[os.path.join(DEST, DEST_DATE)]=1
+                REV=1
+            pickle.dump(data,pfile)
+            pfile.close()
+            DEST = os.path.join(DEST, DEST_DATE + "-" + str(REV))
             self.setProperty('DEST', DEST)
 	return self.finished(SUCCESS)
 
@@ -261,9 +281,9 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
     fout = fout + 'PARALLEL_MAKE = "-j 16"\n'
     fout = fout + 'SDKMACHINE ?= "i586"\n'
     fout = fout + 'DL_DIR = "' + defaultenv['DL_DIR']+'"\n'
-    if str(btarget) == "fri2" or str(btarget) == "crownbay" or str(btarget) == "sys940x":
+    if str(btarget) == "fri2" or str(btarget) == "crownbay":
         fout = fout + 'LICENSE_FLAGS_WHITELIST = "license_emgd-driver-bin_1.10" \n'
-    if str(btarget) == "cedartrail":
+    if str(btarget) == "cedartrail" or str(btarget) == "sys940x":
         fout = fout + 'LICENSE_FLAGS_WHITELIST += "license_cdv-pvr-driver_1.0" \n'
     if "lsb" in distro:
         fout = fout + 'SSTATE_DIR ?= "' + defaultenv['LSB_SSTATE_DIR']+'"\n'
@@ -414,7 +434,7 @@ def runPreamble(factory, target):
                 description="Prepping for nightly creation by removing SSTATE", 
                 timeout=62400,
                 command=["rm", "-rf", defaultenv['SSTATE_DIR'], defaultenv['LSB_SSTATE_DIR']]))
-    factory.addStep(setDest(workdir=WithProperties("%s", "workdir"), btarget=target))
+    factory.addStep(setDest(workdir=WithProperties("%s", "workdir"), btarget=target, abbase=defaultenv['ABBASE']))
     factory.addStep(ShellCommand(doStepIf=getRepo,
                     description="Getting the requested git repo",
                     command='echo "Getting the requested git repo"'))
@@ -649,16 +669,21 @@ def runPostamble(factory):
                         command=["mkdir", "-p", "yocto"],
                         env=copy.copy(defaultenv),
                         timeout=14400))
+        #factory.addStep(ShellCommand(doStepIf=getRepo, description="Grabbing git archive",
+        #                command=["sh", "-c", WithProperties("git remote add archive %s; git remote update", defaultenv["POKYREPO"])],
+        #                timeout=2000))
+        #factory.addStep(ShellCommand, description="Creating tarball",
+        #                command=["sh", "-c", WithProperties("git archive %s --remote=contrib --format=tar | bzip2 >yocto.tar.gz", "otherbranch")],
+        #                timeout=2600)
         factory.addStep(ShellCommand, description="Grabbing git archive",
                         command=["sh", "-c", WithProperties("git archive `echo '%s'|sed 's/\//:/g'` | tar -x -C yocto", "otherbranch")],
                         timeout=600)
         factory.addStep(ShellCommand, description="Creating tarball",
                         command=["sh", "-c", "tar cvjf yocto.tar.bz2 yocto"],
                         timeout=600)
-        factory.addStep(ShellCommand, description="Moving tarball", 
+        factory.addStep(ShellCommand, description="Moving tarball",  
                         command=["sh", "-c", WithProperties("mv yocto.tar.bz2 %s", "DEST")],
                         timeout=600)
-
 def buildBSPLayer(factory, distrotype, btarget, provider):
     if distrotype == "poky":
         defaultenv['DISTRO'] = 'poky'
@@ -811,7 +836,6 @@ def publishArtifacts(factory, artifact, tmpdir):
     if PUBLISH_SSTATE == "True" and artifact == "sstate":
         factory.addStep(ShellCommand, description="Syncing shared state cache to mirror", 
                         command="yocto-update-shared-state-prebuilds", timeout=2400)
-
 ################################################################################
 #
 # BuildSets Section
