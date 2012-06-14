@@ -96,6 +96,7 @@ defaultenv['SDKMACHINE'] = "i686"
 defaultenv['DL_DIR'] = SOURCE_DL_DIR
 defaultenv['LSB_SSTATE_DIR'] = LSB_SSTATE_DIR
 defaultenv['SSTATE_DIR'] = SOURCE_SSTATE_DIR
+defaultenv['SSTATE_BRANCH'] = ""
 defaultenv['BUILD_HISTORY_COLLECT'] = BUILD_HISTORY_COLLECT
 defaultenv['BUILD_HISTORY_DIR'] = BUILD_HISTORY_DIR
 defaultenv['BUILD_HISTORY_REPO'] = BUILD_HISTORY_REPO
@@ -265,17 +266,18 @@ def createBBLayersConf(factory, defaultenv, btarget=None, bsplayer=False, provid
                     timeout=60))
 
 def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory="False"):
+    sstate_branch = ""
     factory.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
     factory.addStep(ShellCommand(doStepIf=getSlaveBaseDir,
                     env=copy.copy(defaultenv),
                     command='echo "Getting the slave basedir"'))
-    factory.addStep(ShellCommand(description="Ensuring a auto.conf exists",
-                    command=["sh", "-c", WithProperties("echo '' > %s/" + defaultenv['ABTARGET'] + "/build/build/conf/auto.conf", 'SLAVEBASEDIR')],
-                    timeout=60))
-    factory.addStep(ShellCommand(warnOnFailure=True, description="Removing old auto.conf",
-                    command=["sh", "-c", WithProperties("rm %s/" + defaultenv['ABTARGET'] + "/build/build/conf/auto.conf", 'SLAVEBASEDIR')],
-                    timeout=60))
     AUTOCONF = defaultenv['SLAVEBASEDIR'] + "/" + defaultenv['ABTARGET'] +  "/build/build/conf/auto.conf"
+    factory.addStep(ShellCommand(warnOnFailure=True, description="Ensuring auto.conf removal",
+                    command="echo '' >> " + AUTOCONF,
+                    timeout=60))
+    factory.addStep(ShellCommand(warnOnFailure=True, description="Remove old auto.conf",
+                    command="rm " +  AUTOCONF,
+                    timeout=60))
     fout = 'PACKAGE_CLASSES = "package_rpm package_deb package_ipk"\n' 
     fout = fout + 'BB_NUMBER_THREADS = "10"\n'
     fout = fout + 'PARALLEL_MAKE = "-j 16"\n'
@@ -285,16 +287,19 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
         fout = fout + 'LICENSE_FLAGS_WHITELIST = "license_emgd-driver-bin_1.10" \n'
     if str(btarget) == "cedartrail" or str(btarget) == "sys940x":
         fout = fout + 'LICENSE_FLAGS_WHITELIST += "license_cdv-pvr-driver_1.0" \n'
-    if "lsb" in distro:
-        fout = fout + 'SSTATE_DIR ?= "' + defaultenv['LSB_SSTATE_DIR']+'"\n'
-    else:
-        fout = fout + 'SSTATE_DIR ?= "' + defaultenv['SSTATE_DIR']+'"\n'
-    if "gpl3" in defaultenv['ABTARGET']:
-        fout = fout + 'INCOMPATIBLE_LICENSE = "GPLv3" \n'
     if "multilib" in defaultenv['ABTARGET']:
         fout = fout + 'require conf/multilib.conf \n'
         fout = fout + 'MULTILIBS = "multilib:lib32" \n'
         fout = fout + 'DEFAULTTUNE_virtclass-multilib-lib32 = "x86" \n'
+        factory.addStep(ShellCommand(description="Adding sstate dir to auto.conf",
+                        command=["echo", 'SSTATE_DIR ?= "' + defaultenv['SSTATE_DIR'] + '/multilib"', ">>", AUTOCONF],
+                        timeout=60))
+    else:
+        factory.addStep(ShellCommand(description="Adding sstate dir to auto.conf",
+                        command=["echo", 'SSTATE_DIR ?= "' + defaultenv['SSTATE_DIR'] + '/', ">>", AUTOCONF],
+                        timeout=60))
+    if "gpl3" in defaultenv['ABTARGET']:
+        fout = fout + 'INCOMPATIBLE_LICENSE = "GPLv3" \n'
     if distro == "poky-rt":
         fout = fout + 'PREFERRED_PROVIDER_virtual/kernel="linux-yocto-rt" \n'
     fout = fout + 'MACHINE = "' + str(btarget) + '"\n'
@@ -303,12 +308,6 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
         fout = fout + 'USER_CLASSES += "image-prelink image-swab"\n'
     if PUBLISH_BUILDS == "True":
         fout = fout + 'BB_GENERATE_MIRROR_TARBALLS = "1"\n'           
-    factory.addStep(ShellCommand(warnOnFailure=True, description="Ensuring auto.conf removal",
-                    command="echo '' >> " + AUTOCONF,
-                    timeout=60))
-    factory.addStep(ShellCommand(warnOnFailure=True, description="Remove old auto.conf",
-                    command="rm " +  AUTOCONF,
-                    timeout=60))
     factory.addStep(ShellCommand(description="Creating auto.conf",
                     command="echo '" +  fout + "'>>" + AUTOCONF,
                     timeout=60))
@@ -430,10 +429,11 @@ def runPreamble(factory, target):
     factory.addStep(ShellCommand(
                     description=["Building on", WithProperties("%s", "HOSTNAME"),  WithProperties("%s", "UNAME")],
                     command=["echo", WithProperties("%s", "HOSTNAME"),  WithProperties("%s", "UNAME")]))
+    # Here we remove ALL sstate dirs. We shouldn't need to do this often.
     factory.addStep(ShellCommand(doStepIf=getCleanSS,
                 description="Prepping for nightly creation by removing SSTATE", 
                 timeout=62400,
-                command=["rm", "-rf", defaultenv['SSTATE_DIR'], defaultenv['LSB_SSTATE_DIR']]))
+                command=["rm", "-rf", defaultenv['SSTATE_DIR']+"*", defaultenv['LSB_SSTATE_DIR']+"*"]))
     factory.addStep(setDest(workdir=WithProperties("%s", "workdir"), btarget=target, abbase=defaultenv['ABBASE']))
     factory.addStep(ShellCommand(doStepIf=getRepo,
                     description="Getting the requested git repo",
@@ -749,12 +749,12 @@ def publishArtifacts(factory, artifact, tmpdir):
             if artifact == "qemux86-tiny":
                 factory.addStep(ShellCommand(
                                 description=["Making " + artifact + " deploy dir"],
-                                command=["mkdir", "-p", WithProperties("%s/machines/qemu/%s", "DEST", "ARTIFACT")],
+                                command=["mkdir", "-p", WithProperties("%s/machines/qemu/qemux86-tiny", "DEST")],
                                 env=copy.copy(defaultenv),
                                 timeout=14400))
                 factory.addStep(ShellCommand(
                                 description=["Copying " + artifact + " artifacts"],
-                                command=["sh", "-c", WithProperties("cp -Rd *%s* %s/machines/qemu/qemux86", 'ARTIFACT', 'DEST')],
+                                command=["sh", "-c", WithProperties("cp -Rd * %s/machines/qemu/qemux86-tiny", 'DEST')],
                                 workdir=tmpdir + "/deploy/images",
                                 env=copy.copy(defaultenv),
                                 timeout=14400))
@@ -836,6 +836,7 @@ def publishArtifacts(factory, artifact, tmpdir):
     if PUBLISH_SSTATE == "True" and artifact == "sstate":
         factory.addStep(ShellCommand, description="Syncing shared state cache to mirror", 
                         command="yocto-update-shared-state-prebuilds", timeout=2400)
+
 ################################################################################
 #
 # BuildSets Section
