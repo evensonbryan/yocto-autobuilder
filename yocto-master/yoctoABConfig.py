@@ -278,7 +278,7 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
     factory.addStep(ShellCommand(warnOnFailure=True, description="Remove old auto.conf",
                     command="rm " +  AUTOCONF,
                     timeout=60))
-    fout = 'PACKAGE_CLASSES = "package_rpm package_deb package_ipk"\n' 
+    fout = 'PACKAGE_CLASSES = "package_rpm package_deb package_ipk"\n'
     fout = fout + 'DISTRO = "' + distro + '"\n'
     fout = fout + 'BB_NUMBER_THREADS = "10"\n'
     fout = fout + 'PARALLEL_MAKE = "-j 16"\n'
@@ -309,30 +309,24 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
         fout = fout + 'USER_CLASSES += "image-prelink image-swab"\n'
     if PUBLISH_BUILDS == "True":
         fout = fout + 'BB_GENERATE_MIRROR_TARBALLS = "1"\n'           
-    factory.addStep(ShellCommand(description="Creating auto.conf",
-                    command="echo '" +  fout + "'>>" + AUTOCONF,
-                    timeout=60))
     factory.addStep(SetPropertiesFromEnv(variables=["BUILD_HISTORY_DIR"]))
     factory.addStep(SetPropertiesFromEnv(variables=["BUILD_HISTORY_REPO"]))
     factory.addStep(SetPropertiesFromEnv(variables=["BUILD_HISTORY_COLLECT"]))
-    if buildhistory is "True" and defaultenv['BUILD_HISTORY_COLLECT'] is "True":
+    if defaultenv['ENABLE_SWABBER'] == "True":
+        fout = fout + 'USER_CLASSES += "image-prelink image-swab"\n'
+    if PUBLISH_SOURCE_MIRROR == "True":
+        fout = fout + 'BB_GENERATE_MIRROR_TARBALLS = "1"\n'
+    factory.addStep(ShellCommand(description="Creating auto.conf",
+                    command="echo '" +  fout + "'>>" + AUTOCONF,
+                    timeout=60))
+    fout = ""
+    if str(buildhistory) == "True" and defaultenv['BUILD_HISTORY_COLLECT'] == "True":
+      
         fout = fout + 'INHERIT += "buildhistory"\n'
         fout = fout + 'BUILDHISTORY_COMMIT = "1"\n'
         fout = fout + 'BUILDHISTORY_DIR = "' + defaultenv['BUILD_HISTORY_DIR'] + '/' + defaultenv['ABTARGET'] + '/poky-buildhistory"\n'
         fout = fout + 'BUILDHISTORY_PUSH_REPO = "' + defaultenv['BUILD_HISTORY_REPO'] + ' ' + defaultenv['ABTARGET'] + ':' + defaultenv['ABTARGET'] + '"\n'
-        factory.addStep(ShellCommand(doStepIf=doNightlyArchTest, description="Adding buildhistory to auto.conf",
-                        command="echo '" +  fout + "'>>" + AUTOCONF,
-                        timeout=60))
-        factory.addStep(ShellCommand(doStepIf=doNightlyArchTest,
-                        description="Syncing Local Build History Repo",
-                        workdir=defaultenv['BUILD_HISTORY_DIR'] + defaultenv['ABTARGET'] + "/poky-buildhistory",
-                        command=["git", "pull", "origin", defaultenv['ABTARGET']],
-                        timeout=2000))
-    if defaultenv['ENABLE_SWABBER'] == "True":
-        fout = fout + 'USER_CLASSES += "image-prelink image-swab"\n'
-    if PUBLISH_SOURCE_MIRROR == "True":
-        fout = fout + 'BB_GENERATE_MIRROR_TARBALLS = "1"\n'           
-    factory.addStep(ShellCommand(description="Creating auto.conf",
+    factory.addStep(ShellCommand(doStepIf=doNightlyArchTest, description="Adding buildhistory to auto.conf",
                     command="echo '" +  fout + "'>>" + AUTOCONF,
                     timeout=60))
 
@@ -347,10 +341,9 @@ def doNightlyArchTest(step):
     buildername = step.getProperty("buildername")
     branch = step.getProperty("branch")
     for arch in nightly_arch:
-        if "nightly-" + arch is buildername and branch == "master" and BUILD_HISTORY_COLLECT == "True":
+        if "nightly-" + arch == buildername and branch == "master" and defaultenv['BUILD_HISTORY_COLLECT'] == "True":
             return True
-        else:
-            return False
+    return False
 
 def runBSPLayerPreamble(factory, target, provider):
     factory.addStep(shell.SetProperty(workdir="build", 
