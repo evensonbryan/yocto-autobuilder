@@ -279,6 +279,7 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
                     command="rm " +  AUTOCONF,
                     timeout=60))
     fout = 'PACKAGE_CLASSES = "package_rpm package_deb package_ipk"\n' 
+    fout = fout + 'DISTRO = "' + distro + '"\n'
     fout = fout + 'BB_NUMBER_THREADS = "10"\n'
     fout = fout + 'PARALLEL_MAKE = "-j 16"\n'
     fout = fout + 'SDKMACHINE ?= "i586"\n'
