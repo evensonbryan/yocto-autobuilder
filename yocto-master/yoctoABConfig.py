@@ -140,32 +140,34 @@ class setDest(LoggingBuildStep):
 
     def start(self):
         try:
-	        self.getProperty('DEST')
+            self.getProperty('DEST')
         except:
             DEST = os.path.join(BUILD_PUBLISH_DIR.strip('"').strip("'"), self.btarget)
             DEST_DATE=datetime.datetime.now().strftime("%Y%m%d")
             DATA_FILE = os.path.join(self.abbase, self.btarget + "_dest.dat")
-            pfile = open(DATA_FILE, 'ab+')
-            try: 
-				data = pickle.load(pfile)
+            pfile = open(DATA_FILE, 'rb')
+            try:
+                data = pickle.load(pfile)
             except:
                 data = {}
             # we can't os.path.exists here as we don't neccessarily have
             # access to the slave dest from master. So we keep a cpickle of 
             # the dests.
             try:
-                # if the list entry exists, we increment value by one, then repickle
+                # if the dictionary entry exists, we increment value by one, then repickle
                 REV=data[os.path.join(DEST, DEST_DATE)]
                 REV=int(REV) + 1
-                data[os.path.join(DEST, DEST_DATE)]=int(REV) + 1
+                #data[os.path.join(DEST, DEST_DATE)]=int(REV)
             except:
-                data[os.path.join(DEST, DEST_DATE)]=1
                 REV=1
-            pickle.dump(data,pfile)
+            data[os.path.join(DEST, DEST_DATE)] = REV
+            pfile = open(DATA_FILE, 'wb')
+            pickle.dump(data, pfile)
             pfile.close()
             DEST = os.path.join(DEST, DEST_DATE + "-" + str(REV))
             self.setProperty('DEST', DEST)
-	return self.finished(SUCCESS)
+        return self.finished(SUCCESS)
+
 
 class YoctoBlocker(buildbot.steps.blocker.Blocker):
 
