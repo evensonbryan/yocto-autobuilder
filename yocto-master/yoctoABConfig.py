@@ -238,6 +238,9 @@ def createBBLayersConf(factory, defaultenv, btarget=None, bsplayer=False, provid
                     env=copy.copy(defaultenv),
                     command='echo "Getting the slave basedir"'))
     BBLAYER = defaultenv['SLAVEBASEDIR'] + "/" + defaultenv['ABTARGET'] + "/build/build/conf/bblayers.conf"
+    factory.addStep(shell.SetProperty( 
+                    command="cat " + BBLAYER + "|grep LCONF |sed 's/LCONF_VERSION = \"//'|sed 's/\"//'",
+                    property="LCONF_VERSION"))    
     factory.addStep(ShellCommand(doStepIf=getSlaveBaseDir,
                     env=copy.copy(defaultenv),
                     command='echo "Getting the slave basedir"'))
@@ -247,7 +250,10 @@ def createBBLayersConf(factory, defaultenv, btarget=None, bsplayer=False, provid
     factory.addStep(ShellCommand(warnOnFailure=True, description="Removing old bblayers.conf",
                     command=["sh", "-c", WithProperties("rm %s/" + defaultenv['ABTARGET'] + "/build/build/conf/bblayers.conf", 'SLAVEBASEDIR')],
                     timeout=60))
-    fout = 'LCONF_VERSION = "4" \n'
+    factory.addStep(ShellCommand(description="Adding LCONF to bblayers.conf",
+                    command=["sh", "-c", WithProperties("echo 'LCONF_VERSION = \"%s\" \n' > %s/" + defaultenv['ABTARGET'] + "/build/build/conf/bblayers.conf",    'LCONF_VERSION', 'SLAVEBASEDIR')],
+                    timeout=60))
+    fout = ""
     fout = fout + 'BBFILES ?="" \n'
     fout = fout + 'BBLAYERS = " \ \n'
     if buildprovider=="yocto":
