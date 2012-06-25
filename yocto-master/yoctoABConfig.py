@@ -145,8 +145,8 @@ class setDest(LoggingBuildStep):
             DEST = os.path.join(BUILD_PUBLISH_DIR.strip('"').strip("'"), self.btarget)
             DEST_DATE=datetime.datetime.now().strftime("%Y%m%d")
             DATA_FILE = os.path.join(self.abbase, self.btarget + "_dest.dat")
-            pfile = open(DATA_FILE, 'rb')
             try:
+                pfile = open(DATA_FILE, 'rb')
                 data = pickle.load(pfile)
             except:
                 data = {}
@@ -281,7 +281,6 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
                     command="rm " +  AUTOCONF,
                     timeout=60))
     fout = 'PACKAGE_CLASSES = "package_rpm package_deb package_ipk"\n'
-    fout = fout + 'DISTRO = "' + distro + '"\n'
     fout = fout + 'BB_NUMBER_THREADS = "10"\n'
     fout = fout + 'PARALLEL_MAKE = "-j 16"\n'
     fout = fout + 'SDKMACHINE ?= "i586"\n'
