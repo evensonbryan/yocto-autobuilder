@@ -304,7 +304,7 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
                         timeout=60))
     else:
         factory.addStep(ShellCommand(description="Adding sstate dir to auto.conf",
-                        command=["echo", 'SSTATE_DIR ?= "' + defaultenv['SSTATE_DIR'] + '/', ">>", AUTOCONF],
+                        command=["echo", 'SSTATE_DIR ?= "' + defaultenv['SSTATE_DIR'] + '/"', ">>", AUTOCONF],
                         timeout=60))
     if "gpl3" in defaultenv['ABTARGET']:
         fout = fout + 'INCOMPATIBLE_LICENSE = "GPLv3" \n'
