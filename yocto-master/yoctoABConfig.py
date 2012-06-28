@@ -299,13 +299,9 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
         fout = fout + 'require conf/multilib.conf \n'
         fout = fout + 'MULTILIBS = "multilib:lib32" \n'
         fout = fout + 'DEFAULTTUNE_virtclass-multilib-lib32 = "x86" \n'
-        factory.addStep(ShellCommand(description="Adding sstate dir to auto.conf",
-                        command=["echo", 'SSTATE_DIR ?= "' + defaultenv['SSTATE_DIR'] + '/multilib"', ">>", AUTOCONF],
-                        timeout=60))
+        fout = fout + 'SSTATE_DIR ?= "' + defaultenv['SSTATE_DIR'] + '/multilib"'
     else:
-        factory.addStep(ShellCommand(description="Adding sstate dir to auto.conf",
-                        command=["echo", 'SSTATE_DIR ?= "' + defaultenv['SSTATE_DIR'] + '/"', ">>", AUTOCONF],
-                        timeout=60))
+        fout = fout + 'SSTATE_DIR ?= "' + defaultenv['SSTATE_DIR'] + '/"'
     if "gpl3" in defaultenv['ABTARGET']:
         fout = fout + 'INCOMPATIBLE_LICENSE = "GPLv3" \n'
     if distro == "poky-rt":
@@ -315,7 +311,7 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
     if defaultenv['ENABLE_SWABBER'] == "True":
         fout = fout + 'USER_CLASSES += "image-prelink image-swab"\n'
     if PUBLISH_BUILDS == "True":
-        fout = fout + 'BB_GENERATE_MIRROR_TARBALLS = "1"\n'           
+        fout = fout + 'BB_GENERATE_MIRROR_TARBALLS = "1"\n'
     factory.addStep(SetPropertiesFromEnv(variables=["BUILD_HISTORY_DIR"]))
     factory.addStep(SetPropertiesFromEnv(variables=["BUILD_HISTORY_REPO"]))
     factory.addStep(SetPropertiesFromEnv(variables=["BUILD_HISTORY_COLLECT"]))
@@ -323,17 +319,12 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
         fout = fout + 'USER_CLASSES += "image-prelink image-swab"\n'
     if PUBLISH_SOURCE_MIRROR == "True":
         fout = fout + 'BB_GENERATE_MIRROR_TARBALLS = "1"\n'
-    factory.addStep(ShellCommand(description="Creating auto.conf",
-                    command="echo '" +  fout + "'>>" + AUTOCONF,
-                    timeout=60))
-    fout = ""
     if str(buildhistory) == "True" and defaultenv['BUILD_HISTORY_COLLECT'] == "True":
-      
         fout = fout + 'INHERIT += "buildhistory"\n'
         fout = fout + 'BUILDHISTORY_COMMIT = "1"\n'
         fout = fout + 'BUILDHISTORY_DIR = "' + defaultenv['BUILD_HISTORY_DIR'] + '/' + defaultenv['ABTARGET'] + '/poky-buildhistory"\n'
         fout = fout + 'BUILDHISTORY_PUSH_REPO = "' + defaultenv['BUILD_HISTORY_REPO'] + ' ' + defaultenv['ABTARGET'] + ':' + defaultenv['ABTARGET'] + '"\n'
-    factory.addStep(ShellCommand(doStepIf=doNightlyArchTest, description="Adding buildhistory to auto.conf",
+    factory.addStep(ShellCommand(doStepIf=doNightlyArchTest, description="Creating auto.conf",
                     command="echo '" +  fout + "'>>" + AUTOCONF,
                     timeout=60))
 
