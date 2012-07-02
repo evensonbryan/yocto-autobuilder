@@ -140,7 +140,7 @@ class setDest(LoggingBuildStep):
 
     def start(self):
         try:
-            self.getProperty('DEST')
+	        self.getProperty('DEST')
         except:
             DEST = os.path.join(BUILD_PUBLISH_DIR.strip('"').strip("'"), self.btarget)
             DEST_DATE=datetime.datetime.now().strftime("%Y%m%d")
@@ -149,7 +149,10 @@ class setDest(LoggingBuildStep):
                 pfile = open(DATA_FILE, 'rb')
                 data = pickle.load(pfile)
             except:
+                pfile = open(DATA_FILE, 'wb')
                 data = {}
+                pickle.dump(data, pfile)
+                pfile.close()
             # we can't os.path.exists here as we don't neccessarily have
             # access to the slave dest from master. So we keep a cpickle of 
             # the dests.
@@ -166,7 +169,7 @@ class setDest(LoggingBuildStep):
             pfile.close()
             DEST = os.path.join(DEST, DEST_DATE + "-" + str(REV))
             self.setProperty('DEST', DEST)
-        return self.finished(SUCCESS)
+	return self.finished(SUCCESS)
 
 
 class YoctoBlocker(buildbot.steps.blocker.Blocker):
@@ -1765,6 +1768,39 @@ b245 = {'name': "sys940x-noemgd",
        'factory': f245}
 yocto_builders.append(b245)
 
+#####################################################################
+#
+# chiefriver  Buildout
+#
+#####################################################################
+f250 = factory.BuildFactory()
+defaultenv['DISTRO'] = 'poky'
+defaultenv['ABTARGET'] = 'chiefriver'
+defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['REVISION'] = "HEAD"
+defaultenv['BTARGET'] = 'chiefriver'
+defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-intel.git"
+defaultenv['BSP_BRANCH'] = "master"
+defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
+defaultenv['BSP_REV'] = "HEAD"
+f250.addStep(ShellCommand(doStepIf=getCleanSS,
+            description="Prepping for nightly creation by removing SSTATE",
+            timeout=62400,
+            command=["rm", "-rf", defaultenv['LSB_SSTATE_DIR'], defaultenv['SSTATE_DIR']]))
+makeCheckout(f250)
+runPreamble(f250, defaultenv['ABTARGET'])
+runBSPLayerPreamble(f250, defaultenv['ABTARGET'], "intel")
+buildBSPLayer(f250, "poky", defaultenv['ABTARGET'], "intel")
+f250.addStep(ShellCommand, description="Moving old TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
+buildBSPLayer(f250, "poky-lsb", defaultenv['ABTARGET'], "intel")
+runPostamble(f250)
+f250.addStep(NoOp(name="nightly-meta-intel"))
+b250 = {'name': "chiefriver",
+       'slavenames': ["builder1"],
+       'builddir': "chiefriver",
+       'factory': f250}
+yocto_builders.append(b250)
+
 ################################################################################
 # Yocto Master Fuzzy Target
 ################################################################################
@@ -1918,12 +1954,13 @@ b62 = {'name': "eclipse-plugin-helios",
       }
 #yocto_builders.append(b62)
 
+
 #####################################################################
 #
 # p1022ds buildout
 #
 #####################################################################
-f240 = factory.BuildFactory()
+f340 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'p1022ds'
 defaultenv['ENABLE_SWABBER'] = 'false'
@@ -1933,20 +1970,23 @@ defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-fsl-ppc.git"
 defaultenv['BSP_BRANCH'] = "master"
 defaultenv['BSP_WORKDIR'] = "build/yocto/meta-fsl-ppc"
 defaultenv['BSP_REV'] = "HEAD"
-f240.addStep(ShellCommand(doStepIf=getCleanSS,
+f340.addStep(ShellCommand(doStepIf=getCleanSS,
             description="Prepping for nightly creation by removing SSTATE",
             timeout=62400,
             command=["rm", "-rf", defaultenv['LSB_SSTATE_DIR'], defaultenv['SSTATE_DIR']]))
-makeCheckout(f240)
-runPreamble(f240, defaultenv['ABTARGET'])
-runBSPLayerPreamble(f240, defaultenv['ABTARGET'], "fsl")
-buildBSPLayer(f240, "poky", defaultenv['ABTARGET'], "fsl")
-f240.addStep(ShellCommand, description="Moving old TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
-buildBSPLayer(f240, "poky-lsb", defaultenv['ABTARGET'], "fsl")
-runPostamble(f240)
-b240 = {'name': "p1022ds",
+makeCheckout(f340)
+runPreamble(f340, defaultenv['ABTARGET'])
+runBSPLayerPreamble(f340, defaultenv['ABTARGET'], "fsl")
+buildBSPLayer(f340, "poky", defaultenv['ABTARGET'], "fsl")
+f340.addStep(ShellCommand, description="Moving old TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
+buildBSPLayer(f340, "poky-lsb", defaultenv['ABTARGET'], "fsl")
+runPostamble(f340)
+b340 = {'name': "p1022ds",
         'slavenames': ["builder1"],
         'builddir': "p1022ds",
-        'factory': f240}
-yocto_builders.append(b240)
+        'factory': f340}
+yocto_builders.append(b340)
+
+
+
 
