@@ -724,7 +724,7 @@ def publishArtifacts(factory, artifact, tmpdir):
                             timeout=14400))
             factory.addStep(ShellCommand(
                             description=["Copying i686 toolchain"],
-                            command=["sh", "-c", WithProperties("cp -Rd *i686* %s/toolchain/i686", "DEST")],
+                            command=["sh", "-c", WithProperties("cp -Rd poky-eglibc-i686* %s/toolchain/i686", "DEST")],
                             workdir=tmpdir + "/deploy/sdk",
                             env=copy.copy(defaultenv), 
                             timeout=14400))
@@ -735,10 +735,10 @@ def publishArtifacts(factory, artifact, tmpdir):
                             timeout=14400))
             factory.addStep(ShellCommand(
                             description=["Copying x86-64 toolchain"],
-                            command=["sh", "-c", WithProperties("cp -Rd *x86_64* %s/toolchain/x86_64", "DEST")],
+                            command=["sh", "-c", WithProperties("cp -Rd poky-eglibc-x86_64* %s/toolchain/x86_64", "DEST")],
                             workdir=tmpdir + "/deploy/sdk", 
                             env=copy.copy(defaultenv),
-                            timeout=14400))          
+                            timeout=14400))
 
         elif artifact.startswith("qemu"):
             if artifact == "qemux86-tiny":
