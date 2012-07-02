@@ -441,6 +441,17 @@ def runPreamble(factory, target):
                     workdir=defaultenv['BUILD_HISTORY_DIR'] + "/" + defaultenv['ABTARGET'] + "/poky-buildhistory",
                     command=["git", "pull", "origin", target],
                     timeout=2000))
+    if target=="nightly-x86" or target=="nightly-x86-64" or target=="nightly-arm" or target=="nightly-mips" or target=="nightly-ppc":
+        factory.addStep(ShellCommand(doStepIf=doMasterTest,
+                        description="Creating directory structure to link to bb_persist_data.sqlite3 in buildhistory repo",
+                        workdir="build/build/",
+                        command="mkdir -p tmp/cache",
+                        timeout=2000))
+        factory.addStep(ShellCommand(doStepIf=doMasterTest,
+                        description="Creating link to bb_persist_data.sqlite3 in buildhistory repo",
+                        workdir="build/build/tmp/cache",
+                        command=["ln", "-s", WithProperties(defaultenv['BUILD_HISTORY_DIR'] +"/%s/poky-buildhistory/persistdb/bb_persist_data.sqlite3", "buildername"), "bb_persist_data.sqlite3"],
+                        timeout=2000))
 
 def getRepo(step):
     gittype = step.getProperty("repository")
