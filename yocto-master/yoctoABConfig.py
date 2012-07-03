@@ -325,6 +325,7 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
     factory.addStep(ShellCommand(description="Creating auto.conf",
                     command="echo '" +  fout + "'>>" + AUTOCONF,
                     timeout=60))
+    fout = ""
     if str(buildhistory) == "True" and defaultenv['BUILD_HISTORY_COLLECT'] == "True":
         fout = fout + 'INHERIT += "buildhistory"\n'
         fout = fout + 'BUILDHISTORY_COMMIT = "1"\n'
