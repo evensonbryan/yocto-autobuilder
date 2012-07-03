@@ -302,9 +302,9 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
         fout = fout + 'require conf/multilib.conf \n'
         fout = fout + 'MULTILIBS = "multilib:lib32" \n'
         fout = fout + 'DEFAULTTUNE_virtclass-multilib-lib32 = "x86" \n'
-        fout = fout + 'SSTATE_DIR ?= "' + defaultenv['SSTATE_DIR'] + '/multilib"'
+        fout = fout + 'SSTATE_DIR ?= "' + defaultenv['SSTATE_DIR'] + '/multilib" \n'
     else:
-        fout = fout + 'SSTATE_DIR ?= "' + defaultenv['SSTATE_DIR'] + '/"'
+        fout = fout + 'SSTATE_DIR ?= "' + defaultenv['SSTATE_DIR'] + '/" \n'
     if "gpl3" in defaultenv['ABTARGET']:
         fout = fout + 'INCOMPATIBLE_LICENSE = "GPLv3" \n'
     if distro == "poky-rt":
