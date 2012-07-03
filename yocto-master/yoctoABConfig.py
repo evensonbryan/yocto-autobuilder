@@ -331,7 +331,7 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
         fout = fout + 'BUILDHISTORY_COMMIT = "1"\n'
         fout = fout + 'BUILDHISTORY_DIR = "' + defaultenv['BUILD_HISTORY_DIR'] + '/' + defaultenv['ABTARGET'] + '/poky-buildhistory"\n'
         fout = fout + 'BUILDHISTORY_PUSH_REPO = "' + defaultenv['BUILD_HISTORY_REPO'] + ' ' + defaultenv['ABTARGET'] + ':' + defaultenv['ABTARGET'] + '"\n'
-    factory.addStep(ShellCommand(doStepIf=doNightlyArchTest, description="Adding buildhistory to auto.conf",
+        factory.addStep(ShellCommand(doStepIf=doNightlyArchTest, description="Adding buildhistory to auto.conf",
                     command="echo '" +  fout + "'>>" + AUTOCONF,
                     timeout=60))
 
