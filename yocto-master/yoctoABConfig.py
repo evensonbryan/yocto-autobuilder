@@ -493,8 +493,8 @@ def getRepo(step):
             pass
     else:
         return False
-    cgitrepo == gittype.replace("git://git.yoctoproject.org/",  "http://git.yoctoproject.org/cgit/cgit.cgi/")
-    step.setProperty("cgitrepo", "cgitrepo")
+    cgitrepo = gittype.replace("git://git.yoctoproject.org/",  "http://git.yoctoproject.org/cgit/cgit.cgi/")
+    step.setProperty("cgitrepo", cgitrepo)
     defaultenv['BRANCH']=step.getProperty("otherbranch")
     return True
 
