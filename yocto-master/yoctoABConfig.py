@@ -646,6 +646,7 @@ def nightlyQEMU(factory, machine, distrotype, provider):
         publishArtifacts(factory, machine, "build/build/tmp")
         publishArtifacts(factory, "ipk", "build/build/tmp")
         publishArtifacts(factory, "rpm", "build/build/tmp")
+        publishArtifacts(factory, "deb", "build/build/tmp")
         runSanityTest(factory, machine, 'core-image-sato')
         runSanityTest(factory, machine, 'core-image-minimal')
     elif distrotype == "poky-lsb":
@@ -656,6 +657,7 @@ def nightlyQEMU(factory, machine, distrotype, provider):
         publishArtifacts(factory, machine, "build/build/tmp")
         publishArtifacts(factory, "ipk", "build/build/tmp")
         publishArtifacts(factory, "rpm", "build/build/tmp")
+        publishArtifacts(factory, "deb", "build/build/tmp")
     elif distrotype == "poky-rt":
         defaultenv['DISTRO'] = "poky"
         runImage(factory, machine, 'core-image-rt', distrotype, False, provider, False)
@@ -674,6 +676,7 @@ def nightlyBSP(factory, machine, distrotype, provider):
         publishArtifacts(factory, machine, "build/build/tmp")
         publishArtifacts(factory, "ipk", "build/build/tmp")
         publishArtifacts(factory, "rpm", "build/build/tmp")
+        publishArtifacts(factory, "deb", "build/build/tmp")
     elif distrotype == "poky-lsb":
         defaultenv['DISTRO'] = 'poky-lsb'
         runImage(factory, machine,  
@@ -682,6 +685,7 @@ def nightlyBSP(factory, machine, distrotype, provider):
         publishArtifacts(factory, machine, "build/build/tmp")
         publishArtifacts(factory, "ipk", "build/build/tmp")
         publishArtifacts(factory, "rpm", "build/build/tmp")
+        publishArtifacts(factory, "deb", "build/build/tmp")
     defaultenv['DISTRO'] = 'poky'
                    
 def setBSPLayerRepo(step):
@@ -727,12 +731,14 @@ def buildBSPLayer(factory, distrotype, btarget, provider):
         publishArtifacts(factory, btarget, "build/build/tmp")
         publishArtifacts(factory, "ipk", "build/build/tmp")
         publishArtifacts(factory, "rpm", "build/build/tmp")
+        publishArtifacts(factory, "deb", "build/build/tmp")
     elif distrotype == "poky-lsb":
         defaultenv['DISTRO'] = 'poky-lsb'
         runImage(factory, btarget, 'core-image-lsb core-image-lsb-sdk', distrotype, True, provider, False)
         publishArtifacts(factory, btarget, "build/build/tmp")
         publishArtifacts(factory, "ipk", "build/build/tmp")
         publishArtifacts(factory, "rpm", "build/build/tmp")
+        publishArtifacts(factory, "deb", "build/build/tmp")
     defaultenv['DISTRO'] = 'poky'
 
 def publishArtifacts(factory, artifact, tmpdir):
