@@ -171,7 +171,6 @@ class setDest(LoggingBuildStep):
             self.setProperty('DEST', DEST)
 	return self.finished(SUCCESS)
 
-
 class YoctoBlocker(buildbot.steps.blocker.Blocker):
 
     VALID_IDLE_POLICIES = buildbot.steps.blocker.Blocker.VALID_IDLE_POLICIES + ("run",)
@@ -257,6 +256,7 @@ def createBBLayersConf(factory, defaultenv, btarget=None, bsplayer=False, provid
                     command=["sh", "-c", WithProperties("echo 'LCONF_VERSION = \"%s\" \n' > %s/" + defaultenv['ABTARGET'] + "/build/build/conf/bblayers.conf",    'LCONF_VERSION', 'SLAVEBASEDIR')],
                     timeout=60))
     fout = ""
+    fout = fout + 'BBPATH = "${TOPDIR}" \n'
     fout = fout + 'BBFILES ?="" \n'
     fout = fout + 'BBLAYERS = " \ \n'
     if buildprovider=="yocto":
@@ -266,7 +266,8 @@ def createBBLayersConf(factory, defaultenv, btarget=None, bsplayer=False, provid
         fout = fout + defaultenv['SLAVEBASEDIR'] + "/" + defaultenv['ABTARGET'] + "/build/meta-openembedded \ \n"
         fout = fout + defaultenv['SLAVEBASEDIR'] + "/" + defaultenv['ABTARGET'] + "/build/meta-openembedded/meta-oe \ \n"
     if bsplayer==True and provider=="intel":
-        fout = fout + defaultenv['SLAVEBASEDIR'] + "/" + defaultenv['ABTARGET'] + '/build/yocto/meta-intel' + ' \ \n'
+        if defaultenv['BRANCH'] != "edison":
+             fout = fout + defaultenv['SLAVEBASEDIR'] + "/" + defaultenv['ABTARGET'] + '/build/yocto/meta-intel' + ' \ \n'
         fout = fout + defaultenv['SLAVEBASEDIR'] + "/" + defaultenv['ABTARGET'] + '/build/yocto/meta-intel/meta-' + btarget.replace("-noemgd", "") + ' \ \n'
         fout = fout + defaultenv['SLAVEBASEDIR'] + "/" + defaultenv['ABTARGET'] + '/build/yocto/meta-intel/meta-tlk \ \n'
     elif bsplayer==True and provider=="fsl" and btarget == "p1022ds":
@@ -298,6 +299,7 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
         fout = fout + 'LICENSE_FLAGS_WHITELIST = "license_emgd-driver-bin_1.10" \n'
     if str(btarget) == "cedartrail" or str(btarget) == "sys940x":
         fout = fout + 'LICENSE_FLAGS_WHITELIST += "license_cdv-pvr-driver_1.0" \n'
+        fout = fout + 'PVR_LICENSE = "yes" \n'
     if "multilib" in defaultenv['ABTARGET']:
         fout = fout + 'require conf/multilib.conf \n'
         fout = fout + 'MULTILIBS = "multilib:lib32" \n'
@@ -313,8 +315,6 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
     fout = fout + 'PREMIRRORS = ""\n'
     if defaultenv['ENABLE_SWABBER'] == "True":
         fout = fout + 'USER_CLASSES += "image-prelink image-swab"\n'
-    if PUBLISH_BUILDS == "True":
-        fout = fout + 'BB_GENERATE_MIRROR_TARBALLS = "1"\n'
     factory.addStep(SetPropertiesFromEnv(variables=["BUILD_HISTORY_DIR"]))
     factory.addStep(SetPropertiesFromEnv(variables=["BUILD_HISTORY_REPO"]))
     factory.addStep(SetPropertiesFromEnv(variables=["BUILD_HISTORY_COLLECT"]))
@@ -325,13 +325,12 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
     factory.addStep(ShellCommand(description="Creating auto.conf",
                     command="echo '" +  fout + "'>>" + AUTOCONF,
                     timeout=60))
-    fout = ""
     if str(buildhistory) == "True" and defaultenv['BUILD_HISTORY_COLLECT'] == "True":
         fout = fout + 'INHERIT += "buildhistory"\n'
         fout = fout + 'BUILDHISTORY_COMMIT = "1"\n'
         fout = fout + 'BUILDHISTORY_DIR = "' + defaultenv['BUILD_HISTORY_DIR'] + '/' + defaultenv['ABTARGET'] + '/poky-buildhistory"\n'
         fout = fout + 'BUILDHISTORY_PUSH_REPO = "' + defaultenv['BUILD_HISTORY_REPO'] + ' ' + defaultenv['ABTARGET'] + ':' + defaultenv['ABTARGET'] + '"\n'
-        factory.addStep(ShellCommand(doStepIf=doNightlyArchTest, description="Adding buildhistory to auto.conf",
+    factory.addStep(ShellCommand(doStepIf=doNightlyArchTest, description="Adding buildhistory to auto.conf",
                     command="echo '" +  fout + "'>>" + AUTOCONF,
                     timeout=60))
 
@@ -360,6 +359,7 @@ def runBSPLayerPreamble(factory, target, provider):
                         timeout=10)
         factory.addStep(ShellCommand(workdir="build/yocto/", command=["git", "clone",  "git://git.yoctoproject.org/meta-intel.git"], timeout=1000))
         factory.addStep(ShellCommand(doStepIf=getTag, workdir="build/yocto/meta-intel", command=["git", "checkout",  WithProperties("%s", "otherbranch")], timeout=1000))
+        #factory.addStep(ShellCommand(doStepIf=getTag, workdir="build/yocto/meta-intel", command=["git", "checkout",  "3867f2a35323cbe5dd50023e127678325a984e11"], timeout=1000))
         factory.addStep(ShellCommand(doStepIf=doEMGDTest, 
                         description="Copying EMGD", 
                         workdir="build",
@@ -367,6 +367,7 @@ def runBSPLayerPreamble(factory, target, provider):
                         # command="cp -R /srv/www/vhosts/autobuilder/emgd_drivers/EMGD_1.6/* yocto/meta-intel/meta-" 
                         # + defaultenv['ABTARGET'] + "/recipes-graphics/xorg-xserver/", 
                         command="tar xvzf " + defaultenv['EMGD_DRIVER_DIR'] + "/emgd-driver-bin-1.8.tar.gz -C yocto/meta-intel",
+                        #command="tar xvzf " + "/srv/www/vhosts/autobuilder/emgd_drivers/emgd-driver-bin-1.8.tar.gz -C yocto/meta-intel",
                         timeout=600))
     elif provider=="fsl":
        factory.addStep(ShellCommand,
@@ -414,6 +415,14 @@ def getDest(step):
     defaultenv['DEST'] = step.getProperty("DEST")
     return True
 
+def runArchPostamble(factory, target):
+    if target=="nightly-x86" or target=="nightly-x86-64" or target=="nightly-arm" or target=="nightly-mips" or target=="nightly-ppc":
+        factory.addStep(ShellCommand(doStepIf=doMasterTest,
+                        description="Syncing bb_persist_data.sqlite3 to buildhistory repo",
+                        workdir="build/build/tmp/cache",
+                        command=["cp", "-R", "bb_persist_data.sqlite3", WithProperties(defaultenv['BUILD_HISTORY_DIR'] +"/%s/poky-buildhistory/persistdb/" + target + "/bb_persist_data.sqlite3", "buildername")],
+                        timeout=2000))
+
 def runPreamble(factory, target):
     factory.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
     factory.addStep(ShellCommand(doStepIf=getSlaveBaseDir,
@@ -451,11 +460,21 @@ def runPreamble(factory, target):
                         workdir="build/build/",
                         command="mkdir -p tmp/cache",
                         timeout=2000))
-        factory.addStep(ShellCommand(doStepIf=doMasterTest,
-                        description="Creating link to bb_persist_data.sqlite3 in buildhistory repo",
-                        workdir="build/build/tmp/cache",
-                        command=["ln", "-s", WithProperties(defaultenv['BUILD_HISTORY_DIR'] +"/%s/poky-buildhistory/persistdb/bb_persist_data.sqlite3", "buildername"), "bb_persist_data.sqlite3"],
+        factory.addStep(ShellCommand(doStepIf=doMasterTest, warnOnFailure=False,
+                        description="Ensuring arch specific bb_persist_data.sqlite3 buildhistory directory exists",
+                        command=["mkdir", "-p", WithProperties(defaultenv['BUILD_HISTORY_DIR'] +"/%s/poky-buildhistory/persistdb/" + target, "buildername")],
                         timeout=2000))
+        factory.addStep(ShellCommand(doStepIf=doMasterTest,
+                        description="Copying bb_persist_data.sqlite3 from buildhistory repo",
+                        workdir="build/build/tmp/cache",
+                        command=["cp", "-R", WithProperties(defaultenv['BUILD_HISTORY_DIR'] +"/%s/poky-buildhistory/persistdb/" + target +"/bb_persist_data.sqlite3", "buildername"), "bb_persist_data.sqlite3"],
+                        timeout=2000))
+       # sqlite over NFS is failure prone
+       # factory.addStep(ShellCommand(doStepIf=doMasterTest,
+       #                 description="Creating link to bb_persist_data.sqlite3 in buildhistory repo",
+       #                 workdir="build/build/tmp/cache",
+       #                 command=["ln", "-s", WithProperties(defaultenv['BUILD_HISTORY_DIR'] +"/%s/poky-buildhistory/persistdb/bb_persist_data.sqlite3", "buildername"), "bb_persist_data.sqlite3"],
+       #                 timeout=2000))
 
 def getRepo(step):
     gittype = step.getProperty("repository")
@@ -474,6 +493,8 @@ def getRepo(step):
             pass
     else:
         return False
+    cgitrepo == gittype.replace("git://git.yoctoproject.org/",  "http://git.yoctoproject.org/cgit/cgit.cgi/")
+    step.setProperty("cgitrepo", "cgitrepo")
     defaultenv['BRANCH']=step.getProperty("otherbranch")
     return True
 
@@ -516,6 +537,14 @@ def makeLayerTarball(factory):
                     command=["yocto-autobuild-generate-sources-tarball", "nightly", "1.1pre",
                     WithProperties("%s", "layer0branch")], timeout=120)
     publishArtifacts(factory, "layer-tarball", "build/build/tmp")
+
+def doEdisonBSPTest(step):
+    branch = step.getProperty("otherbranch")
+    if "edison" in branch:
+        return True
+    else:
+        return False
+
 
 def doEMGDTest(step):
     buildername = step.getProperty("buildername")
@@ -686,13 +715,10 @@ def runPostamble(factory):
         #                command=["sh", "-c", WithProperties("git archive %s --remote=contrib --format=tar | bzip2 >yocto.tar.gz", "otherbranch")],
         #                timeout=2600)
         factory.addStep(ShellCommand, description="Grabbing git archive",
-                        command=["sh", "-c", WithProperties("git archive `echo '%s'|sed 's/\//:/g'` | tar -x -C yocto", "otherbranch")],
-                        timeout=600)
-        factory.addStep(ShellCommand, description="Creating tarball",
-                        command=["sh", "-c", "tar cvjf yocto.tar.bz2 yocto"],
+                        command=["sh", "-c", WithProperties("wget %s/snapshot/poky-%s.tar.bz2 .", "cgitrepo", "got_revision")],
                         timeout=600)
         factory.addStep(ShellCommand, description="Moving tarball",  
-                        command=["sh", "-c", WithProperties("mv yocto.tar.bz2 %s", "DEST")],
+                        command=["sh", "-c", WithProperties("mv poky-%s.tar.bz2 %s", "got_revision", "DEST")],
                         timeout=600)
 def buildBSPLayer(factory, distrotype, btarget, provider):
     if distrotype == "poky":
@@ -768,18 +794,18 @@ def publishArtifacts(factory, artifact, tmpdir):
                                 workdir=tmpdir + "/deploy/images",
                                 env=copy.copy(defaultenv),
                                 timeout=14400))
-            else:
-                factory.addStep(ShellCommand(
-                                description=["Making " + artifact + " deploy dir"],
-                                command=["mkdir", "-p", WithProperties("%s/machines/qemu/%s", "DEST", "ARTIFACT")],
-                                env=copy.copy(defaultenv),
-                                timeout=14400))
-                factory.addStep(ShellCommand(
-                                description=["Copying " + artifact + " artifacts"],
-                                command=["sh", "-c", WithProperties("cp -Rd *%s* %s/machines/qemu/%s", 'ARTIFACT', 'DEST', 'ARTIFACT')],
-                                workdir=tmpdir + "/deploy/images",
-                                env=copy.copy(defaultenv),
-                                timeout=14400))
+        elif artifact.startswith("mpc8315e"):
+            factory.addStep(ShellCommand(
+                            description=["Making " + artifact + " deploy dir"],
+                            command=["mkdir", "-p", WithProperties("%s/machines/qemu/%s", "DEST", "ARTIFACT")],
+                            env=copy.copy(defaultenv),
+                            timeout=14400))
+            factory.addStep(ShellCommand(
+                            description=["Copying " + artifact + " artifacts"],
+                            command=["sh", "-c", WithProperties("cp -Rd *mpc8315*rdb* %s/machines/qemu/%s", 'DEST', 'ARTIFACT')],
+                            workdir=tmpdir + "/deploy/images",
+                            env=copy.copy(defaultenv),
+                            timeout=14400))
 ######################################################################
 #
 # Do not use tmp copy. They're there for debugging only. They really do make
@@ -984,11 +1010,11 @@ f61.addStep(ShellCommand, description="Building eclipse plugin",
 if PUBLISH_BUILDS == "True":
     f61.addStep(ShellCommand(
                 description=["Making eclipse deploy dir"],
-                command=["mkdir", "-p", WithProperties("%s/eclipse-plugin/indigo", "DEST")],
+                command=["mkdir", "-p", WithProperties("%s/eclipse-plugin/juno", "DEST")],
                 env=copy.copy(defaultenv),
                 timeout=14400))
     f61.addStep(ShellCommand, description=["Copying eclipse-plugin dir"],
-                command=["sh", "-c", WithProperties("cp *.zip %s/eclipse-plugin/indigo", "DEST")],
+                command=["sh", "-c", WithProperties("cp *.zip %s/eclipse-plugin/juno", "DEST")],
                 workdir="build/eclipse-plugin/scripts",
                 env=copy.copy(defaultenv),
                 timeout=14400)
@@ -1029,6 +1055,7 @@ defaultenv['DISTRO'] = "poky-lsb"
 nightlyQEMU(f66, 'qemux86', "poky-lsb", "yocto")
 nightlyBSP(f66, 'atom-pc', 'poky-lsb', "yocto")
 nightlyQEMU(f66, 'qemux86', "poky-rt", "yocto")
+runArchPostamble(f66, defaultenv['ABTARGET'])
 f66.addStep(NoOp(name="nightly"))
 b66 = {'name': "nightly-x86",
       'slavenames': ["builder1"],
@@ -1063,6 +1090,7 @@ publishArtifacts(f67, "ipk", "build/build/tmp")
 f67.addStep(ShellCommand, description="Moving non-lsb TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
 nightlyQEMU(f67, 'qemux86-64', "poky-lsb", "yocto")
 nightlyQEMU(f67, 'qemux86-64', 'poky-rt', "yocto")
+runArchPostamble(f67, defaultenv['ABTARGET'])
 f67.addStep(NoOp(name="nightly"))
 b67 = {'name': "nightly-x86-64",
       'slavenames': ["builder1"],
@@ -1098,6 +1126,7 @@ publishArtifacts(f68, "ipk", "build/build/tmp")
 f68.addStep(ShellCommand, description="Moving non-lsb TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
 nightlyQEMU(f68, 'qemuarm', "poky-lsb", "yocto")
 nightlyBSP(f68, 'beagleboard', 'poky-lsb', "yocto")
+runArchPostamble(f68, defaultenv['ABTARGET'])
 f68.addStep(NoOp(name="nightly"))
 b68 = {'name': "nightly-arm",
       'slavenames': ["builder1"],
@@ -1133,6 +1162,7 @@ publishArtifacts(f69, "ipk", "build/build/tmp")
 f69.addStep(ShellCommand, description="Moving non-lsb TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
 nightlyQEMU(f69, 'qemumips', "poky-lsb", "yocto")
 nightlyBSP(f69, 'routerstationpro', 'poky-lsb', "yocto")
+runArchPostamble(f69, defaultenv['ABTARGET'])
 f69.addStep(NoOp(name="nightly"))
 b69 = {'name': "nightly-mips",
       'slavenames': ["builder1"],
@@ -1169,6 +1199,7 @@ publishArtifacts(f70, "ipk", "build/build/tmp")
 f70.addStep(ShellCommand, description="Moving non-lsb TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
 nightlyQEMU(f70, 'qemuppc', 'poky-lsb', 'yocto')
 nightlyBSP(f70, 'mpc8315e-rdb', 'poky-lsb' , 'yocto')
+runArchPostamble(f70, defaultenv['ABTARGET'])
 f70.addStep(NoOp(name="nightly"))
 b70 = {'name': "nightly-ppc",
       'slavenames': ["builder1"],
@@ -1351,10 +1382,15 @@ f100.addStep(Trigger(schedulerNames=['romley'],
                             updateSourceStamp=False,
                             set_properties={'DEST': Property("DEST")},
                             waitForFinish=False))
+f100.addStep(Trigger(schedulerNames=['chiefriver'],
+                            updateSourceStamp=False,
+                            set_properties={'DEST': Property("DEST")},
+                            waitForFinish=False))
 
 f100.addStep(YoctoBlocker(idlePolicy="block", timeout=62400, upstreamSteps=[
                                         ("crownbay", "nightly-meta-intel"),
                                         ("crownbay-noemgd", "nightly-meta-intel"),
+                                        ("chiefriver", "nightly-meta-intel"),
                                         ("fri2", "nightly-meta-intel"),
                                         ("fri2-noemgd", "nightly-meta-intel"),
                                         ("emenlow", "nightly-meta-intel"),
@@ -1367,7 +1403,7 @@ f100.addStep(YoctoBlocker(idlePolicy="block", timeout=62400, upstreamSteps=[
                                         ("sugarbay", "nightly-meta-intel")]))
 runPostamble(f100)
 b100 = {'name': "nightly-meta-intel",
-      'slavenames': ["builder1"],
+      'slavenames': ["ab03"],
       'builddir': "nightly-meta-intel",
       'factory': f100
       }
@@ -1385,6 +1421,8 @@ yocto_sched.append(triggerable.Triggerable(name="jasperforest", builderNames=["j
 yocto_sched.append(triggerable.Triggerable(name="n450", builderNames=["n450"]))
 yocto_sched.append(triggerable.Triggerable(name="sugarbay", builderNames=["sugarbay"]))
 yocto_sched.append(triggerable.Triggerable(name="romley", builderNames=["romley"]))
+yocto_sched.append(triggerable.Triggerable(name="chiefriver", builderNames=["chiefriver"]))
+
 
 #####################################################################
 #
