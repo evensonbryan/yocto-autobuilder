@@ -740,7 +740,7 @@ def buildBSPLayer(factory, distrotype, btarget, provider):
         publishArtifacts(factory, "rpm", "build/build/tmp")
         publishArtifacts(factory, "deb", "build/build/tmp")
     defaultenv['DISTRO'] = 'poky'
-
+    
 def publishArtifacts(factory, artifact, tmpdir):
     factory.addStep(ShellCommand(description=["Setting destination"],
                     command=["sh", "-c", WithProperties('echo "%s" > ./deploy-dir', "DEST")],
@@ -800,6 +800,19 @@ def publishArtifacts(factory, artifact, tmpdir):
                                 workdir=tmpdir + "/deploy/images",
                                 env=copy.copy(defaultenv),
                                 timeout=14400))
+            else:
+                factory.addStep(ShellCommand(
+                                description=["Making " + artifact + " deploy dir"],
+                                command=["mkdir", "-p", WithProperties("%s/machines/qemu/%s", "DEST", "ARTIFACT")],
+                                env=copy.copy(defaultenv),
+                                timeout=14400))
+                factory.addStep(ShellCommand(
+                                description=["Copying " + artifact + " artifacts"],
+                                command=["sh", "-c", WithProperties("cp -Rd *%s* %s/machines/qemu/%s", 'ARTIFACT', 'DEST', 'ARTIFACT')],
+                                workdir=tmpdir + "/deploy/images",
+                                env=copy.copy(defaultenv),
+                                timeout=14400))
+
         elif artifact.startswith("mpc8315e"):
             factory.addStep(ShellCommand(
                             description=["Making " + artifact + " deploy dir"],
