@@ -39,7 +39,8 @@ export CLEAN_SOURCE_DIR=False
 export BUILD_HISTORY_DIR="/tmp/yocto-autobuilder/buildhistory"
 export BUILD_HISTORY_REPO="file:////tmp/yocto-autobuilder/buildhistory-repo"
 export EMGD_DRIVER_DIR="/tmp/yocto-autobuilder/emgd-driver"
-
+export PERSISTDB_DIR="/tmp/yocto-autobuilder/persistdb"
+export MAINTAIN_PERSISTDB=False 
 export PYTHONPATH=`pwd`/lib/python2.6/site-packages/:$PYTHONPATH
 export PATH=`pwd`/bin:`pwd`/yocto-autobuilder/scripts:$PATH
 config_check=`cat ${PWD}/yocto-master/master.cfg|grep "'<USER>', '<PASS>'"`
