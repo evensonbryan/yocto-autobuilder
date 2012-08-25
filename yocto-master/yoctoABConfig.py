@@ -917,6 +917,7 @@ f65 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'nightly'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 makeCheckout(f65)
 runPreamble(f65, defaultenv['ABTARGET'])
@@ -1075,6 +1076,7 @@ f10.addStep(ShellCommand, description=["Fetching", "Intel", "FRI2", "BSP", "Sour
                 command=["yocto-autobuild", "universe -c fetch", "-k"],
                 env=copy.copy(defaultenv),
                 timeout=14400)
+defaultenv['MACHINE'] = "cedartrail"
 createAutoConf(f10, defaultenv, btarget="cedartrail", distro="poky")
 createBBLayersConf(f10, defaultenv, btarget="cedartrail", bsplayer=True, provider="intel", buildprovider="yocto")
 f10.addStep(ShellCommand, description=["Fetching", "Intel", "Cedartrail", "BSP", "Source"],
@@ -1097,6 +1099,7 @@ f15 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'build-appliance'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 makeCheckout(f15)
 runPreamble(f15, defaultenv['ABTARGET'])
@@ -1121,6 +1124,7 @@ f61 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'eclipse-plugin'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 runPreamble(f61, defaultenv['ABTARGET'])
 f61.addStep(ShellCommand, description="cleaning up eclipse build dir",
@@ -1168,6 +1172,7 @@ f65 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'nightly-x86'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 makeCheckout(f65)
 runPreamble(f65, defaultenv['ABTARGET'])
@@ -1201,6 +1206,7 @@ f66 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky-lsb'
 defaultenv['ABTARGET'] = 'nightly-x86-lsb'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 makeCheckout(f66)
 runPreamble(f66, defaultenv['ABTARGET'])
@@ -1229,6 +1235,7 @@ f67 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'nightly-x86-64'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 makeCheckout(f67)
 runPreamble(f67, defaultenv['ABTARGET'])
@@ -1261,6 +1268,7 @@ f68 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky-lsb'
 defaultenv['ABTARGET'] = 'nightly-x86-64-lsb'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 makeCheckout(f68)
 runPreamble(f68, defaultenv['ABTARGET'])
@@ -1287,6 +1295,7 @@ f69 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'nightly-arm'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 makeCheckout(f69)
 runPreamble(f69, defaultenv['ABTARGET'])
@@ -1320,6 +1329,7 @@ f70 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky-lsb'
 defaultenv['ABTARGET'] = 'nightly-arm-lsb'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 makeCheckout(f70)
 runPreamble(f70, defaultenv['ABTARGET'])
@@ -1343,6 +1353,7 @@ f71 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'nightly-mips'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 makeCheckout(f71)
 runPreamble(f71, defaultenv['ABTARGET'])
@@ -1378,6 +1389,7 @@ f72 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky-lsb'
 defaultenv['ABTARGET'] = 'nightly-mips-lsb'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 makeCheckout(f72)
 runPreamble(f72, defaultenv['ABTARGET'])
@@ -1402,6 +1414,7 @@ f73 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'nightly-ppc'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 makeCheckout(f73)
 runPreamble(f73, defaultenv['ABTARGET'])
@@ -1435,6 +1448,7 @@ f74 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky-lsb'
 defaultenv['ABTARGET'] = 'nightly-ppc-lsb'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 makeCheckout(f74)
 runPreamble(f74, defaultenv['ABTARGET'])
@@ -1458,6 +1472,7 @@ f75 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'nightly-world'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 makeCheckout(f75)
 runPreamble(f75, defaultenv['ABTARGET'])
@@ -1489,6 +1504,7 @@ f80 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'nightly-non-gpl3'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 makeCheckout(f80)
 runPreamble(f80, defaultenv['ABTARGET'])
@@ -1513,6 +1529,7 @@ f90 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'nightly-multilib'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 makeCheckout(f90)
 runPreamble(f90, defaultenv['ABTARGET'])
@@ -1538,6 +1555,7 @@ f95 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky-tiny'
 defaultenv['ABTARGET'] = 'nightly-tiny'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 makeCheckout(f95)
 runPreamble(f95, defaultenv['ABTARGET'])
@@ -1569,6 +1587,7 @@ f100 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'nightly-meta-intel'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 makeCheckout(f100)
 runPreamble(f100, defaultenv['ABTARGET'])
@@ -1673,6 +1692,7 @@ f170 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'crownbay'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'crownbay'
 defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-intel.git"
@@ -1707,6 +1727,7 @@ f175 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'crownbay-noemgd'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'crownbay'
 defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-intel.git"
@@ -1740,6 +1761,7 @@ f180 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'emenlow'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'emenlow'
 defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-intel.git"
@@ -1773,6 +1795,7 @@ f190 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'n450'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'n450'
 defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-intel.git"
@@ -1806,6 +1829,7 @@ f200 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'jasperforest'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'jasperforest'
 defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-intel.git"
@@ -1839,6 +1863,7 @@ f210 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'sugarbay'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'sugarbay'
 defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-intel.git"
@@ -1872,6 +1897,7 @@ f220 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'fri2-noemgd'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'fri2'
 defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-intel.git"
@@ -1905,6 +1931,7 @@ f225 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'fri2'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'fri2'
 defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-intel.git"
@@ -1938,6 +1965,7 @@ f230 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'romley'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'romley'
 defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-intel.git"
@@ -1971,6 +1999,7 @@ f235 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'cedartrail'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'cedartrail'
 defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-intel.git"
@@ -2004,6 +2033,7 @@ f240 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'sys940x'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'sys940x'
 defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-intel.git"
@@ -2037,6 +2067,7 @@ f245 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'sys940x-noemgd'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'sys940x'
 defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-intel.git"
@@ -2070,6 +2101,7 @@ f250 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'chiefriver'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'chiefriver'
 defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-intel.git"
@@ -2255,6 +2287,7 @@ f340 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'p1022ds'
 defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'p1022ds'
 defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-fsl-ppc.git"
