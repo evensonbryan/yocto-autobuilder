@@ -1072,6 +1072,8 @@ f10.addStep(ShellCommand, description=["Setting up build"],
 runPreamble(f10, "fri2")
 runBSPLayerPreamble(f10, "fri2", "intel")
 defaultenv['MACHINE'] = "fri2"
+createAutoConf(f10, defaultenv, btarget="fri2", distro="poky")
+createBBLayersConf(f10, defaultenv, btarget="fri2", bsplayer=True, provider="intel", buildprovider="yocto")
 f10.addStep(ShellCommand, description=["Fetching", "Intel", "FRI2", "BSP", "Source"],
                 command=["yocto-autobuild", "universe -c fetch", "-k"],
                 env=copy.copy(defaultenv),
