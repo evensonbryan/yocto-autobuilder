@@ -729,7 +729,7 @@ def runPostamble(factory):
         # the git archive goes MIA. In which case, we'll fail quietly here. Other than that single 
         # use case (which for us, is quite often), this should function fine.
         factory.addStep(ShellCommand(doStepIf=getRepo, warnOnFailure=True, description="Grabbing git archive",
-                        command=["sh", "-c", WithProperties("wget %s/snapshot/poky-%s.tar.bz2 .", "cgitrepo", "got_revision")],
+                        command=["sh", "-c", WithProperties("wget %s/snapshot/poky-%s.tar.bz2", "cgitrepo", "got_revision")],
                         timeout=600))
         factory.addStep(ShellCommand(doStepIf=getRepo, warnOnFailure=True, description="Moving tarball",  
                         command=["sh", "-c", WithProperties("mv poky-%s.tar.bz2 %s", "got_revision", "DEST")],
