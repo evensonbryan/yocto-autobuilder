@@ -467,16 +467,16 @@ def runPreamble(factory, target):
                     command=["git", "pull", "origin", target],
                     timeout=2000))
     if MAINTAIN_PERSISTDB == "True":
-        factory.addStep(ShellCommand(doStepIf=doNightlyArchTest,
+        factory.addStep(ShellCommand(doStepIf=doNightlyArchTest, flunkOnFailure=False, warnOnFailure=True,
                         description="Creating directory structure to link to bb_persist_data.sqlite3",
                         workdir="build/build/",
                         command="mkdir -p tmp/cache",
                         timeout=2000))
-        factory.addStep(ShellCommand(flunkOnFailure=False, warnOnFailure=True,
+        factory.addStep(ShellCommand(doStepIf=doNightlyArchTest, flunkOnFailure=False, warnOnFailure=True,
                         description="Ensuring arch specific bb_persist_data.sqlite3 directory exists",
                         command=["mkdir", "-p", WithProperties(defaultenv['PERSISTDB_DIR'] + "/%s/%s/"+defaultenv['DISTRO']+"", "buildername", "otherbranch")],
                         timeout=2000))
-        factory.addStep(ShellCommand(
+        factory.addStep(ShellCommand(doStepIf=doNightlyArchTest, 
                         description="Copying bb_persist_data.sqlite3",
                         workdir="build/build/tmp/cache",
                         command=["cp", "-R", WithProperties(defaultenv['PERSISTDB_DIR'] +"/%s/%s/"+defaultenv['DISTRO']+"/bb_persist_data.sqlite3", "buildername", "otherbranch"), "bb_persist_data.sqlite3"],
