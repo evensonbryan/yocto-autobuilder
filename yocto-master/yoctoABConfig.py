@@ -429,11 +429,11 @@ def getDest(step):
     defaultenv['DEST'] = step.getProperty("DEST")
     return True
 
-def runArchPostamble(factory, target):
+def runArchPostamble(factory, distro, target):
         factory.addStep(ShellCommand(doStepIf=doNightlyArchTest,
                         description="Syncing bb_persist_data.sqlite3 to main persistdb area",
                         workdir="build/build/tmp/cache",
-                        command=["cp", "-R", "bb_persist_data.sqlite3", WithProperties(defaultenv['PERSISTDB_DIR'] + "/%s/%s/"+defaultenv['DISTRO']+"/bb_persist_data.sqlite3", "buildername", "otherbranch")],
+                        command=["cp", "-R", "bb_persist_data.sqlite3", WithProperties(defaultenv['PERSISTDB_DIR'] + "/%s/%s/" + distro + "/bb_persist_data.sqlite3", "buildername", "otherbranch")],
                         timeout=2000))
 
 def runPreamble(factory, target):
@@ -1190,7 +1190,7 @@ f65.addStep(ShellCommand, description="Setting SDKMACHINE=x86_64",
 runImage(f65, 'qemux86', 'meta-toolchain-gmae', defaultenv['DISTRO'], False, "yocto", defaultenv['BUILD_HISTORY_COLLECT'])
 publishArtifacts(f65, "toolchain", "build/build/tmp")
 publishArtifacts(f65, "ipk", "build/build/tmp")
-runArchPostamble(f65, defaultenv['ABTARGET'])
+runArchPostamble(f65, "poky", defaultenv['ABTARGET'])
 f65.addStep(NoOp(name="nightly"))
 b65 = {'name': "nightly-x86",
       'slavenames': ["builder1"],
@@ -1219,7 +1219,7 @@ defaultenv['DISTRO'] = "poky-lsb"
 nightlyQEMU(f66, 'qemux86', "poky-lsb", "yocto")
 nightlyBSP(f66, 'atom-pc', 'poky-lsb', "yocto")
 nightlyQEMU(f66, 'qemux86', "poky-rt", "yocto")
-runArchPostamble(f66, defaultenv['ABTARGET'])
+runArchPostamble(f66, "poky-lsb", defaultenv['ABTARGET'])
 f66.addStep(NoOp(name="nightly"))
 b66 = {'name': "nightly-x86-lsb",
       'slavenames': ["builder1"],
@@ -1252,7 +1252,7 @@ f67.addStep(ShellCommand, description="Setting SDKMACHINE=x86_64",
 runImage(f67, 'qemux86-64', 'meta-toolchain-gmae', defaultenv['DISTRO'], False, "yocto", defaultenv['BUILD_HISTORY_COLLECT'])
 publishArtifacts(f67, "toolchain","build/build/tmp")
 publishArtifacts(f67, "ipk", "build/build/tmp")
-runArchPostamble(f67, defaultenv['ABTARGET'])
+runArchPostamble(f67, "poky", defaultenv['ABTARGET'])
 f67.addStep(NoOp(name="nightly"))
 b67 = {'name': "nightly-x86-64",
       'slavenames': ["builder1"],
@@ -1279,7 +1279,7 @@ f68.addStep(ShellCommand, description="Setting SDKMACHINE=i686",
             command="echo 'Setting SDKMACHINE=i686'", timeout=10)
 nightlyQEMU(f68, 'qemux86-64', "poky-lsb", "yocto")
 nightlyQEMU(f68, 'qemux86-64', 'poky-rt', "yocto")
-runArchPostamble(f68, defaultenv['ABTARGET'])
+runArchPostamble(f68, "poky-lsb", defaultenv['ABTARGET'])
 f68.addStep(NoOp(name="nightly"))
 b68 = {'name': "nightly-x86-64-lsb",
       'slavenames': ["builder1"],
@@ -1313,7 +1313,7 @@ f69.addStep(ShellCommand, description="Setting SDKMACHINE=x86_64",
 runImage(f69, 'qemuarm', 'meta-toolchain-gmae', defaultenv['DISTRO'], False, "yocto", defaultenv['BUILD_HISTORY_COLLECT'])
 publishArtifacts(f69, "toolchain","build/build/tmp")
 publishArtifacts(f69, "ipk", "build/build/tmp")
-runArchPostamble(f69, defaultenv['ABTARGET'])
+runArchPostamble(f69, "poky", defaultenv['ABTARGET'])
 f69.addStep(NoOp(name="nightly"))
 b69 = {'name': "nightly-arm",
       'slavenames': ["builder1"],
@@ -1337,7 +1337,7 @@ makeCheckout(f70)
 runPreamble(f70, defaultenv['ABTARGET'])
 nightlyQEMU(f70, 'qemuarm', "poky-lsb", "yocto")
 nightlyBSP(f70, 'beagleboard', 'poky-lsb', "yocto")
-runArchPostamble(f70, defaultenv['ABTARGET'])
+runArchPostamble(f70, "poky-lsb", defaultenv['ABTARGET'])
 f70.addStep(NoOp(name="nightly"))
 b70 = {'name': "nightly-arm-lsb",
       'slavenames': ["builder1"],
@@ -1371,7 +1371,7 @@ f71.addStep(ShellCommand, description="Setting SDKMACHINE=x86_64",
 runImage(f71, 'qemumips', 'meta-toolchain-gmae', defaultenv['DISTRO'], False, "yocto", defaultenv['BUILD_HISTORY_COLLECT'])
 publishArtifacts(f71, "toolchain", "build/build/tmp" )
 publishArtifacts(f71, "ipk", "build/build/tmp")
-runArchPostamble(f71, defaultenv['ABTARGET'])
+runArchPostamble(f71, "poky", defaultenv['ABTARGET'])
 f71.addStep(NoOp(name="nightly"))
 b71 = {'name': "nightly-mips",
 
@@ -1398,7 +1398,7 @@ runPreamble(f72, defaultenv['ABTARGET'])
 defaultenv['SDKMACHINE'] = 'i686'
 nightlyQEMU(f72, 'qemumips', "poky-lsb", "yocto")
 nightlyBSP(f72, 'routerstationpro', 'poky-lsb', "yocto")
-runArchPostamble(f72, defaultenv['ABTARGET'])
+runArchPostamble(f72, "poky-lsb", defaultenv['ABTARGET'])
 f72.addStep(NoOp(name="nightly"))
 b72 = {'name': "nightly-mips-lsb",
       'slavenames': ["builder1"],
@@ -1432,7 +1432,7 @@ f73.addStep(ShellCommand, description="Setting SDKMACHINE=x86_64",
 runImage(f73, 'qemuppc', 'meta-toolchain-gmae', defaultenv['DISTRO'], False, "yocto", defaultenv['BUILD_HISTORY_COLLECT'])
 publishArtifacts(f73, "toolchain", "build/build/tmp")
 publishArtifacts(f73, "ipk", "build/build/tmp")
-runArchPostamble(f73, defaultenv['ABTARGET'])
+runArchPostamble(f73, "poky", defaultenv['ABTARGET'])
 f73.addStep(NoOp(name="nightly"))
 b73 = {'name': "nightly-ppc",
       'slavenames': ["builder1"],
@@ -1456,7 +1456,7 @@ makeCheckout(f74)
 runPreamble(f74, defaultenv['ABTARGET'])
 nightlyQEMU(f74, 'qemuppc', 'poky-lsb', 'yocto')
 nightlyBSP(f74, 'mpc8315e-rdb', 'poky-lsb' , 'yocto')
-runArchPostamble(f74, defaultenv['ABTARGET'])
+runArchPostamble(f74, "poky-lsb", defaultenv['ABTARGET'])
 f74.addStep(NoOp(name="nightly"))
 b74 = {'name': "nightly-ppc-lsb",
       'slavenames': ["builder1"],
