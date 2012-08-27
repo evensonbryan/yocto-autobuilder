@@ -310,9 +310,9 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
     fout = fout + 'SDKMACHINE ?= "i586"\n'
     fout = fout + 'DL_DIR = "' + defaultenv['DL_DIR']+'"\n'
     if str(btarget) == "fri2" or str(btarget) == "crownbay" or "sys940x":
-        fout = fout + 'LICENSE_FLAGS_WHITELIST = "license_emgd-driver-bin_1.10" \n'
+        fout = fout + 'LICENSE_FLAGS_WHITELIST += "license_emgd-driver-bin" \n'
     if str(btarget) == "cedartrail":
-        fout = fout + 'LICENSE_FLAGS_WHITELIST += "license_cdv-pvr-driver_1.0" \n'
+        fout = fout + 'LICENSE_FLAGS_WHITELIST += "license_cdv-pvr-driver" \n'
         fout = fout + 'PVR_LICENSE = "yes" \n'
     if "multilib" in defaultenv['ABTARGET']:
         fout = fout + 'require conf/multilib.conf \n'
