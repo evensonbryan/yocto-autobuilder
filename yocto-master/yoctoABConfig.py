@@ -1105,7 +1105,7 @@ defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 makeCheckout(f15)
 runPreamble(f15, defaultenv['ABTARGET'])
-runImage(f15, 'qemux86-64', 'bitbake build-appliance-image', "poky", False, "yocto", False)
+runImage(f15, 'qemux86-64', 'build-appliance-image', "poky", False, "yocto", False)
 publishArtifacts(f15, "qemux86", "build/build/tmp")
 b15 = {'name': "build-appliance",
        'slavenames': ["builder1"],
