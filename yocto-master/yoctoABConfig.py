@@ -73,6 +73,9 @@ if not BUILD_PUBLISH_DIR:
     BUILD_PUBLISH_DIR = "/tmp"
 BUILD_HISTORY_COLLECT = os.environ.get("BUILD_HISTORY_COLLECT")
 BUILD_HISTORY_REPO = os.environ.get("BUILD_HISTORY_REPO")
+PERSISTDB_DIR = os.environ.get("PERSISTDB_DIR")
+MAINTAIN_PERSISTDB = = os.environ.get("MAINTAIN_PERSISTDB")
+ 
 # Very useful way of grabbing nightly-arch names
 nightly_arch = []
 nightly_arch.append("x86")
@@ -425,11 +428,12 @@ def getDest(step):
     return True
 
 def runArchPostamble(factory, target):
-    factory.addStep(ShellCommand(doStepIf=doNightlyArchTest,
-        description="Syncing bb_persist_data.sqlite3 to buildhistory repo",
-        workdir="build/build/tmp/cache",
-        command=["cp", "-R", "bb_persist_data.sqlite3", WithProperties(defaultenv['BUILD_HISTORY_DIR'] +"/%s/poky-buildhistory/persistdb/" + target + "/bb_persist_data.sqlite3", "buildername")],
-        timeout=2000))
+    if target=="nightly-x86" or target=="nightly-x86-64" or target=="nightly-arm" or target=="nightly-mips" or target=="nightly-ppc" and MAINTAIN_PERSISTDB == "True":
+        factory.addStep(ShellCommand(
+                        description="Syncing bb_persist_data.sqlite3 to buildhistory repo",
+                        workdir="build/build/tmp/cache",
+                        command=["cp", "-R", "bb_persist_data.sqlite3", WithProperties(WithProperties(defaultenv['PERSISTDB_DIR'] + "/%s/%s/"+defaultenv['DISTRO']+"/bb_persist_data.sqlite3", "buildername", "otherbranch")],
+                        timeout=2000))
 
 def runPreamble(factory, target):
     factory.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
@@ -461,20 +465,22 @@ def runPreamble(factory, target):
                     workdir=defaultenv['BUILD_HISTORY_DIR'] + "/" + defaultenv['ABTARGET'] + "/poky-buildhistory",
                     command=["git", "pull", "origin", target],
                     timeout=2000))
-    factory.addStep(ShellCommand(doStepIf=doNightlyArchTest,
-                    description="Creating directory structure to link to bb_persist_data.sqlite3 in buildhistory repo",
-                    workdir="build/build/",
-                    command="mkdir -p tmp/cache",
-                    timeout=2000))
-    factory.addStep(ShellCommand(doStepIf=doNightlyArchTest, warnOnFailure=False,
-                    description="Ensuring arch specific bb_persist_data.sqlite3 buildhistory directory exists",
-                    command=["mkdir", "-p", WithProperties(defaultenv['BUILD_HISTORY_DIR'] +"/%s/poky-buildhistory/persistdb/" + defaultenv['ABTARGET'], "buildername")],
-                    timeout=2000))
-    factory.addStep(ShellCommand(doStepIf=doNightlyArchTest,
-                    description="Copying bb_persist_data.sqlite3 from buildhistory repo",
-                    workdir="build/build/tmp/cache",
-                    command=["cp", "-R", WithProperties(defaultenv['BUILD_HISTORY_DIR'] +"/%s/poky-buildhistory/persistdb/" + defaultenv['ABTARGET'] +"/bb_persist_data.sqlite3", "buildername"), "bb_persist_data.sqlite3"],
-                    timeout=2000))
+    if MAINTAIN_PERSISTDB == "True":
+        factory.addStep(ShellCommand(doStepIf=doNightlyArchTest,
+                        description="Creating directory structure to link to bb_persist_data.sqlite3 in buildhistory repo",
+                        workdir="build/build/",
+                        command="mkdir -p tmp/cache",
+                        timeout=2000))
+        factory.addStep(ShellCommand(flunkOnFailure=False, warnOnFailure=True,
+                        description="Ensuring arch specific bb_persist_data.sqlite3 buildhistory directory exists",
+                        command=["mkdir", "-p", WithProperties(defaultenv['PERSISTDB_DIR'] + "/%s/%s/"+defaultenv['DISTRO']+"", "buildername", "otherbranch")],
+                        timeout=2000))
+        factory.addStep(ShellCommand(
+                        description="Copying bb_persist_data.sqlite3 from buildhistory repo",
+                        workdir="build/build/tmp/cache",
+                        command=["cp", "-R", WithProperties(defaultenv['PERSISTDB_DIR'] +"/%s/%s/"+defaultenv['DISTRO']+"/bb_persist_data.sqlite3", "buildername", "otherbranch"), "bb_persist_data.sqlite3"],
+                        timeout=2000))
+
 
 def getRepo(step):
     gittype = step.getProperty("repository")
