@@ -52,7 +52,7 @@ yocto_sched = []
 yocto_builders = []
 defaultenv = {}
 layerid = 0
-
+releases = ["denzil", "edison"]
 ABBASE = os.environ.get("PWD")
 SOURCE_DL_DIR = os.environ.get("SOURCE_DL_DIR")
 LSB_SSTATE_DIR = os.environ.get("LSB_SSTATE_DIR")
@@ -483,23 +483,26 @@ def runPreamble(factory, target):
                         timeout=2000))
 
 def getRepo(step):
-    gittype = step.getProperty("repository")
-    if gittype == "git://git.yoctoproject.org/poky-contrib":
-        step.setProperty("otherbranch", "master")
-    elif gittype == "git://git.yoctoproject.org/poky":
-        try:
-            branch = step.getProperty("branch")
+    gitrepo = step.getProperty("repository")
+    try:
+        branch = step.getProperty("branch")
+        if gitrepo == "git://git.yoctoproject.org/poky-contrib":
+            for release in releases:
+                if release in branch:
+                    step.setProperty("otherbranch", release)
+                    break
+                else:
+                    step.setProperty("otherbranch", "master")       
+        elif gittype == "git://git.yoctoproject.org/poky":
             if branch != "master":
                 step.setProperty("otherbranch", branch)
             else:
                 step.setProperty("otherbranch", "master")
-        except: 
-            step.setProperty("branch", "master")
-            step.setProperty("otherbranch", "master")
-            pass
-    else:
-        return False
-    cgitrepo = gittype.replace("git://git.yoctoproject.org/",  "http://git.yoctoproject.org/cgit/cgit.cgi/")
+    except: 
+        step.setProperty("branch", "master")
+        step.setProperty("otherbranch", "master")
+        pass
+    cgitrepo = gitrepo.replace("git://git.yoctoproject.org/",  "http://git.yoctoproject.org/cgit/cgit.cgi/")
     step.setProperty("cgitrepo", cgitrepo)
     defaultenv['BRANCH']=step.getProperty("otherbranch")
     return True
