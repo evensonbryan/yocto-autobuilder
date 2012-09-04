@@ -780,6 +780,18 @@ def publishArtifacts(factory, artifact, tmpdir):
                             workdir=tmpdir + "/deploy/sdk",
                             env=copy.copy(defaultenv),
                             timeout=14400))
+        if artifact == "build-appliance":
+            factory.addStep(ShellCommand(
+                            description="Making build-appliance dir",
+                            command=["mkdir", "-p", WithProperties("%s/build-appliance", "DEST")],
+                            env=copy.copy(defaultenv),
+                            timeout=14400))
+            factory.addStep(ShellCommand(
+                            description=["Copying build-appliance"],
+                            command=["sh", "-c", WithProperties("cp -R * %s/build-appliance", "DEST")],
+                            workdir=tmpdir + "/deploy/images",
+                            env=copy.copy(defaultenv),
+                            timeout=14400))
         elif artifact == "toolchain":
             factory.addStep(ShellCommand(
                             description="Making toolchain deploy dir",
@@ -1113,7 +1125,7 @@ defaultenv['REVISION'] = "HEAD"
 makeCheckout(f15)
 runPreamble(f15, defaultenv['ABTARGET'])
 runImage(f15, 'qemux86-64', 'build-appliance-image', "poky", False, "yocto", False)
-publishArtifacts(f15, "qemux86", "build/build/tmp")
+publishArtifacts(f15, "build-appliance", "build/build/tmp")
 b15 = {'name': "build-appliance",
        'slavenames': ["builder1"],
        'builddir': "build-appliance",
