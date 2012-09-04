@@ -949,7 +949,10 @@ f65.addStep(Trigger(schedulerNames=['meta-intel-gpl'],
                             updateSourceStamp=False,
                             set_properties={'DEST': Property("DEST")},
                             waitForFinish=False))
-
+f65.addStep(Trigger(schedulerNames=['build-appliance'],
+                            updateSourceStamp=False,
+                            set_properties={'DEST': Property("DEST")},
+                            waitForFinish=False))
 f65.addStep(Trigger(schedulerNames=['nightly-x86'],
                             updateSourceStamp=False,
                             set_properties={'DEST': Property("DEST")},
@@ -1044,6 +1047,7 @@ b65 = {'name': "nightly",
 
 yocto_builders.append(b65)
 yocto_sched.append(triggerable.Triggerable(name="eclipse-plugin", builderNames=["eclipse-plugin"]))
+yocto_sched.append(triggerable.Triggerable(name="build-appliance", builderNames=["build-appliance"]))
 yocto_sched.append(triggerable.Triggerable(name="meta-intel-gpl", builderNames=["meta-intel-gpl"]))
 yocto_sched.append(triggerable.Triggerable(name="nightly-x86", builderNames=["nightly-x86"]))
 yocto_sched.append(triggerable.Triggerable(name="nightly-x86-64", builderNames=["nightly-x86-64"]))
@@ -1126,6 +1130,7 @@ makeCheckout(f15)
 runPreamble(f15, defaultenv['ABTARGET'])
 runImage(f15, 'qemux86-64', 'build-appliance-image', "poky", False, "yocto", False)
 publishArtifacts(f15, "build-appliance", "build/build/tmp")
+f15.addStep(NoOp(name="nightly"))
 b15 = {'name': "build-appliance",
        'slavenames': ["builder1"],
        'builddir': "build-appliance",
