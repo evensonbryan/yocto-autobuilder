@@ -308,7 +308,12 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
     fout = fout + 'BB_NUMBER_THREADS = "10"\n'
     fout = fout + 'PARALLEL_MAKE = "-j 16"\n'
     fout = fout + 'SDKMACHINE ?= "i586"\n'
-    fout = fout + 'DL_DIR = "' + defaultenv['DL_DIR']+'"\n'
+    if 'build-appliance' in defaultenv['ABTARGET']:
+        fout = fout + 'DL_DIR ?= "${TOPDIR}/downloads"\n'
+        fout = fout + 'PREMIRRORS = "' + defaultenv['DL_DIR']+'"\n'
+    else:
+        fout = fout + 'DL_DIR = "' + defaultenv['DL_DIR']+'"\n'
+        fout = fout + 'PREMIRRORS = ""\n'
     if str(btarget) == "fri2" or str(btarget) == "crownbay" or "sys940x":
         fout = fout + 'LICENSE_FLAGS_WHITELIST += "license_emgd-driver-bin" \n'
     if str(btarget) == "cedartrail":
@@ -326,7 +331,6 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
     if distro == "poky-rt":
         fout = fout + 'PREFERRED_PROVIDER_virtual/kernel="linux-yocto-rt" \n'
     fout = fout + 'MACHINE = "' + str(btarget) + '"\n'
-    fout = fout + 'PREMIRRORS = ""\n'
     if defaultenv['ENABLE_SWABBER'] == "True":
         fout = fout + 'USER_CLASSES += "image-prelink image-swab"\n'
     factory.addStep(SetPropertiesFromEnv(variables=["BUILD_HISTORY_DIR"]))
