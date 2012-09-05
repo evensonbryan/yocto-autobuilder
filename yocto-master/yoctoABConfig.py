@@ -780,7 +780,7 @@ def publishArtifacts(factory, artifact, tmpdir):
                             workdir=tmpdir + "/deploy/sdk",
                             env=copy.copy(defaultenv),
                             timeout=14400))
-        if artifact == "build-appliance":
+        elif artifact == "build-appliance":
             factory.addStep(ShellCommand(
                             description="Making build-appliance dir",
                             command=["mkdir", "-p", WithProperties("%s/build-appliance", "DEST")],
