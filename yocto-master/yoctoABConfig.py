@@ -1128,7 +1128,7 @@ defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 makeCheckout(f15)
 runPreamble(f15, defaultenv['ABTARGET'])
-runImage(f65, 'qemux86-64', 'universe -c fetch', "poky", False, "yocto", False)
+runImage(f15, 'qemux86-64', 'universe -c fetch', "poky", False, "yocto", False)
 runImage(f15, 'qemux86-64', 'build-appliance-image', "poky", False, "yocto", False)
 publishArtifacts(f15, "build-appliance", "build/build/tmp")
 f15.addStep(NoOp(name="nightly"))
