@@ -69,6 +69,14 @@ SSTATE_PUBLISH_DIR = os.environ.get("SSTATE_PUBLISH_DIR")
 SOURCE_PUBLISH_DIR = os.environ.get("SOURCE_PUBLISH_DIR")
 EMGD_DRIVER_DIR = os.environ.get("EMGD_DRIVER_DIR")
 SLAVEBASEDIR = os.environ.get("SLAVEBASEDIR")
+ADTREPO_POPULATE = os.environ.get("ADTREPO_POPULATE")
+ADTREPO_DEV_POPULATE = os.environ.get("ADTREPO_DEV_POPULATE")
+ADTREPO_GENERATE_INSTALLER = os.environ.get("ADTREPO_GENERATE_INSTALLER")
+ADTREPO_GENERATE_DEV_INSTALLER = os.environ.get("ADTREPO_GENERATE_DEV_INSTALLER")
+ADTREPO_URL = os.environ.get("ADTREPO_URL")
+ADTREPO_PATH = os.environ.get("ADTREPO_PATH")
+ADTREPO_DEV_URL = os.environ.get("ADTREPO_DEV_URL")
+ADTREPO_DEV_PATH = os.environ.get("ADTREPO_DEV_PATH")
 if not BUILD_PUBLISH_DIR:
     BUILD_PUBLISH_DIR = "/tmp"
 BUILD_HISTORY_COLLECT = os.environ.get("BUILD_HISTORY_COLLECT")
@@ -86,6 +94,8 @@ nightly_arch.append("ppc")
 
 # Trying to access Properties within a factory can sometimes be problematic.
 # This is here for convenience.
+defaultenv["ADTDEV"]="False"
+defaultenv['LCONF_VERSION'] = "5"
 defaultenv['ENABLE_SWABBER'] = ""
 defaultenv['WORKDIR'] = ""
 defaultenv['FuzzArch'] = ""
@@ -103,6 +113,14 @@ defaultenv['SSTATE_BRANCH'] = ""
 defaultenv['BUILD_HISTORY_COLLECT'] = BUILD_HISTORY_COLLECT
 defaultenv['BUILD_HISTORY_DIR'] = BUILD_HISTORY_DIR
 defaultenv['BUILD_HISTORY_REPO'] = BUILD_HISTORY_REPO
+defaultenv['ADTREPO_POPULATE'] = ADTREPO_POPULATE
+defaultenv['ADTREPO_DEV_POPULATE'] = ADTREPO_DEV_POPULATE
+defaultenv['ADTREPO_GENERATE_INSTALLER'] = ADTREPO_GENERATE_INSTALLER
+defaultenv['ADTREPO_GENERATE_DEV_INSTALLER'] = ADTREPO_GENERATE_DEV_INSTALLER
+defaultenv['ADTREPO_URL'] = ADTREPO_URL
+defaultenv['ADTREPO_PATH'] = ADTREPO_PATH
+defaultenv['ADTREPO_DEV_URL'] = ADTREPO_DEV_URL
+defaultenv['ADTREPO_DEV_PATH'] = ADTREPO_DEV_PATH
 defaultenv['EMGD_DRIVER_DIR'] = EMGD_DRIVER_DIR
 defaultenv['SLAVEBASEDIR'] = SLAVEBASEDIR
 defaultenv['PERSISTDB_DIR'] = PERSISTDB_DIR
@@ -240,6 +258,20 @@ class YoctoBlocker(buildbot.steps.blocker.Blocker):
         buildStatus1.getProperties()["DEST"] == \
         buildStatus2.getProperties()["DEST"]
 
+def setAllEnv(factory):
+    factory.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
+    factory.addStep(SetPropertiesFromEnv(variables=["BUILD_HISTORY_DIR"]))
+    factory.addStep(SetPropertiesFromEnv(variables=["BUILD_HISTORY_REPO"]))
+    factory.addStep(SetPropertiesFromEnv(variables=["BUILD_HISTORY_COLLECT"]))
+    factory.addStep(SetPropertiesFromEnv(variables=["ADTREPO_POPULATE"]))
+    factory.addStep(SetPropertiesFromEnv(variables=["ADTREPO_DEV_POPULATE"]))
+    factory.addStep(SetPropertiesFromEnv(variables=["ADTREPO_GENERATE_INSTALLER"]))
+    factory.addStep(SetPropertiesFromEnv(variables=["ADTREPO_GENERATE_DEV_INSTALLER"]))
+    factory.addStep(SetPropertiesFromEnv(variables=["ADTREPO_URL"]))
+    factory.addStep(SetPropertiesFromEnv(variables=["ADTREPO_PATH"]))
+    factory.addStep(SetPropertiesFromEnv(variables=["ADTREPO_DEV_URL"]))
+    factory.addStep(SetPropertiesFromEnv(variables=["ADTREPO_DEV_PATH"]))
+
 def createBBLayersConf(factory, defaultenv, btarget=None, bsplayer=False, provider=None, buildprovider=None):
     factory.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
     factory.addStep(ShellCommand(doStepIf=getSlaveBaseDir,
@@ -250,12 +282,7 @@ def createBBLayersConf(factory, defaultenv, btarget=None, bsplayer=False, provid
     else:
         slavehome = defaultenv['ABTARGET']
     BBLAYER = defaultenv['SLAVEBASEDIR'] + "/" + slavehome + "/build/build/conf/bblayers.conf"
-    factory.addStep(shell.SetProperty( 
-                    command="cat " + BBLAYER + "|grep LCONF |sed 's/LCONF_VERSION = \"//'|sed 's/\"//'",
-                    property="LCONF_VERSION"))    
-    factory.addStep(ShellCommand(doStepIf=getSlaveBaseDir,
-                    env=copy.copy(defaultenv),
-                    command='echo "Getting the slave basedir"'))
+    setLCONF(factory, defaultenv)
     factory.addStep(ShellCommand(description="Ensuring a bblayers.conf exists",
                     command=["sh", "-c", WithProperties("echo '' > %s/" + slavehome + "/build/build/conf/bblayers.conf", 'SLAVEBASEDIR')],
                     timeout=60))
@@ -268,7 +295,7 @@ def createBBLayersConf(factory, defaultenv, btarget=None, bsplayer=False, provid
     fout = ""
     fout = fout + 'BBPATH = "${TOPDIR}" \n'
     fout = fout + 'BBFILES ?="" \n'
-    fout = fout + 'BBLAYERS = " \ \n'
+    fout = fout + 'BBLAYERS += " \ \n'
     if buildprovider=="yocto":
         fout = fout + defaultenv['SLAVEBASEDIR'] + "/" + slavehome + "/build/meta \ \n"
         fout = fout + defaultenv['SLAVEBASEDIR'] + "/" + slavehome + "/build/meta-yocto \ \n"
@@ -281,15 +308,17 @@ def createBBLayersConf(factory, defaultenv, btarget=None, bsplayer=False, provid
         fout = fout + defaultenv['SLAVEBASEDIR'] + "/" + slavehome + '/build/yocto/meta-intel/meta-' + btarget.replace("-noemgd", "") + ' \ \n'
         fout = fout + defaultenv['SLAVEBASEDIR'] + "/" + slavehome + '/build/yocto/meta-intel/meta-tlk \ \n'
     elif bsplayer==True and provider=="fsl" and btarget == "p1022ds":
-        fout = fout + defaultenv['SLAVEBASEDIR']  + "/" + slavehome + '/build/yocto/meta-fsl-ppc \ \n'
+        fout = fout + defaultenv['SLAVEBASEDIR']  + "/" + slavehome + '/build/yocto/meta-fsl-ppc \ '
     fout = fout + defaultenv['SLAVEBASEDIR']  + "/" + slavehome + '/build/meta-qt3 " \n'
     factory.addStep(ShellCommand(description="Creating bblayers.conf",
                     command="echo '" +  fout + "'>>" + BBLAYER,
                     timeout=60))
+    factory.addStep(ShellCommand(doStepIf=checkYoctoBSPLayer, description="Adding meta-yocto-bsp layer to bblayers.conf",
+                    command="echo 'BBLAYERS += \"" + defaultenv['SLAVEBASEDIR'] + "/" + slavehome + "/build/meta-yocto-bsp\"'>>" + BBLAYER,
+                    timeout=60))
 
 def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory="False"):
     sstate_branch = ""
-    factory.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
     factory.addStep(ShellCommand(doStepIf=getSlaveBaseDir,
                     env=copy.copy(defaultenv),
                     command='echo "Getting the slave basedir"'))
@@ -297,7 +326,9 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
         slavehome = "meta-intel-gpl"
     else:
         slavehome = defaultenv['ABTARGET']
+    BBLAYER = defaultenv['SLAVEBASEDIR'] + "/" + slavehome + "/build/build/conf/bblayers.conf"
     AUTOCONF = defaultenv['SLAVEBASEDIR'] + "/" + slavehome +  "/build/build/conf/auto.conf"
+    setLCONF(factory, defaultenv)
     factory.addStep(ShellCommand(warnOnFailure=True, description="Ensuring auto.conf removal",
                     command="echo '' >> " + AUTOCONF,
                     timeout=60))
@@ -308,9 +339,18 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
     fout = fout + 'BB_NUMBER_THREADS = "10"\n'
     fout = fout + 'PARALLEL_MAKE = "-j 16"\n'
     fout = fout + 'SDKMACHINE ?= "i586"\n'
+    if defaultenv["ADTDEV"]=="True":
+        factory.addStep(ShellCommand(doStepIf=checkYoctoBSPLayer, description="Adding dev adt-repo to auto.conf",
+                        command=['echo', WithProperties('ADTREPO ?= \"'+ defaultenv["ADTREPO_DEV_URL"] +'/${SDK_VERSION}-%s-%s\"\n', "branch",  "got_revision"), ">> \" + AUTOCONF"],
+                        timeout=60))
+    else:
+        factory.addStep(ShellCommand(doStepIf=checkYoctoBSPLayer, description="Adding dev adt-repo to auto.conf",
+                        command="echo 'ADTREPO ?= \"" + defaultenv["ADTREPO_URL"] + "/${SDK_VERSION}\"\n' >> " + AUTOCONF,
+                        timeout=60))
     if 'build-appliance' in defaultenv['ABTARGET']:
         fout = fout + 'DL_DIR ?= "${TOPDIR}/downloads"\n'
-        fout = fout + 'PREMIRRORS = "' + defaultenv['DL_DIR']+'"\n'
+        fout = fout + 'INHERIT += "own-mirrors"\n'
+        fout = fout + 'SOURCE_MIRROR_URL = "file:///' + defaultenv['DL_DIR']+'"\n'
     else:
         fout = fout + 'DL_DIR = "' + defaultenv['DL_DIR']+'"\n'
         fout = fout + 'PREMIRRORS = ""\n'
@@ -333,9 +373,6 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
     fout = fout + 'MACHINE = "' + str(btarget) + '"\n'
     if defaultenv['ENABLE_SWABBER'] == "True":
         fout = fout + 'USER_CLASSES += "image-prelink image-swab"\n'
-    factory.addStep(SetPropertiesFromEnv(variables=["BUILD_HISTORY_DIR"]))
-    factory.addStep(SetPropertiesFromEnv(variables=["BUILD_HISTORY_REPO"]))
-    factory.addStep(SetPropertiesFromEnv(variables=["BUILD_HISTORY_COLLECT"]))
     if defaultenv['ENABLE_SWABBER'] == "True":
         fout = fout + 'USER_CLASSES += "image-prelink image-swab"\n'
     if PUBLISH_SOURCE_MIRROR == "True":
@@ -359,6 +396,32 @@ def doMasterTest(step):
     else:
         return False
 
+def setLCONF(factory, defaultenv):
+    if defaultenv['MIGPL']=="True":
+        slavehome = "meta-intel-gpl"
+    else:
+        slavehome = defaultenv['ABTARGET']
+    BBLAYER = defaultenv['SLAVEBASEDIR'] + "/" + slavehome + "/build/build/conf/bblayers.conf"
+    factory.addStep(shell.SetProperty(
+                    command="cat " + BBLAYER + "|grep LCONF |sed 's/LCONF_VERSION = \"//'|sed 's/\"//'",
+                    property="LCONF_VERSION")) 
+def setSDKVERSION(factory, defaultenv):
+    if defaultenv['MIGPL']=="True":
+        slavehome = "meta-intel-gpl"
+    else:
+        slavehome = defaultenv['ABTARGET']
+    SDKVERSION = defaultenv['SLAVEBASEDIR'] + "/" + slavehome + "/build/meta-yocto/conf/distro/poky.conf"
+    factory.addStep(shell.SetProperty(
+                    command="cat " + SDKVERSION + "|grep DISTRO_VERSION |sed 's/DISTRO_VERSION = \"//'|sed 's/-${DATE}//'|sed 's/\"//'",
+                    property="SDKVERSION"))
+
+def checkYoctoBSPLayer(step):
+    lconf = step.getProperty("LCONF_VERSION")
+    if int(lconf) < 5:
+        return False
+    else:
+        return True
+
 def doNightlyArchTest(step):
     buildername = step.getProperty("buildername")
     branch = step.getProperty("branch")
@@ -377,15 +440,10 @@ def runBSPLayerPreamble(factory, target, provider):
                         timeout=10)
         factory.addStep(ShellCommand(workdir="build/yocto/", command=["git", "clone",  "git://git.yoctoproject.org/meta-intel.git"], timeout=1000))
         factory.addStep(ShellCommand(doStepIf=getTag, workdir="build/yocto/meta-intel", command=["git", "checkout",  WithProperties("%s", "otherbranch")], timeout=1000))
-        #factory.addStep(ShellCommand(doStepIf=getTag, workdir="build/yocto/meta-intel", command=["git", "checkout",  "3867f2a35323cbe5dd50023e127678325a984e11"], timeout=1000))
         factory.addStep(ShellCommand(doStepIf=doEMGDTest, 
                         description="Copying EMGD", 
                         workdir="build",
-                        # old. For bernard.
-                        # command="cp -R /srv/www/vhosts/autobuilder/emgd_drivers/EMGD_1.6/* yocto/meta-intel/meta-" 
-                        # + defaultenv['ABTARGET'] + "/recipes-graphics/xorg-xserver/", 
                         command="tar xvzf " + defaultenv['EMGD_DRIVER_DIR'] + "/emgd-driver-bin-1.8.tar.gz -C yocto/meta-intel",
-                        #command="tar xvzf " + "/srv/www/vhosts/autobuilder/emgd_drivers/emgd-driver-bin-1.8.tar.gz -C yocto/meta-intel",
                         timeout=600))
     elif provider=="fsl":
        factory.addStep(ShellCommand,
@@ -410,6 +468,17 @@ def runImage(factory, machine, image, distro, bsplayer, provider, buildhistory):
         buildprovider="yocto"
     else:
         buildprovider="oe"
+    factory.addStep(ShellCommand(doStepIf=getSlaveBaseDir,
+                    env=copy.copy(defaultenv),
+                    command='echo "Getting the slave basedir"'))
+    if defaultenv['MIGPL']=="True":
+        slavehome = "meta-intel-gpl"
+    else:
+        slavehome = defaultenv['ABTARGET']
+    BBLAYER = defaultenv['SLAVEBASEDIR'] + "/" + slavehome + "/build/build/conf/bblayers.conf"
+    factory.addStep(shell.SetProperty( 
+                    command="cat " + BBLAYER + "|grep LCONF |sed 's/LCONF_VERSION = \"//'|sed 's/\"//'",
+                    property="LCONF_VERSION")) 
     createAutoConf(factory, defaultenv, btarget=machine, distro=distro, buildhistory=buildhistory)
     createBBLayersConf(factory, defaultenv, btarget=machine, bsplayer=bsplayer, provider=provider, buildprovider=buildprovider)
     defaultenv['MACHINE'] = machine
@@ -441,10 +510,15 @@ def runArchPostamble(factory, distro, target):
                         timeout=2000))
 
 def runPreamble(factory, target):
+    setAllEnv(factory)
     factory.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
     factory.addStep(ShellCommand(doStepIf=getSlaveBaseDir,
                     env=copy.copy(defaultenv),
                     command='echo "Getting the slave basedir"'))
+    if defaultenv['MIGPL']=="True":
+        slavehome = "meta-intel-gpl"
+    else:
+        slavehome = defaultenv['ABTARGET']
     factory.addStep(shell.SetProperty(
                     command="uname -a",
                     property="UNAME"))
@@ -503,8 +577,7 @@ def getRepo(step):
             else:
                 step.setProperty("otherbranch", "master")
     except: 
-        step.setProperty("branch", "master")
-        step.setProperty("otherbranch", "master")
+        step.setProperty("otherbranch", branch)
         pass
     cgitrepo = gitrepo.replace("git://git.yoctoproject.org/",  "http://git.yoctoproject.org/cgit/cgit.cgi/")
     step.setProperty("cgitrepo", cgitrepo)
@@ -780,6 +853,40 @@ def publishArtifacts(factory, artifact, tmpdir):
                             workdir=tmpdir + "/deploy/sdk",
                             env=copy.copy(defaultenv),
                             timeout=14400))
+        elif artifact == "adt_installer-QA":
+            factory.addStep(ShellCommand(
+                            description="Making adt_installer-QA dir",
+                            command=["mkdir", "-p", WithProperties("%s/adt_installer-QA", "DEST")],
+                            env=copy.copy(defaultenv),
+                            timeout=14400))
+            factory.addStep(ShellCommand(
+                            description=["Copying adt_installer for QA"],
+                            command=["sh", "-c", WithProperties("cp -R *adt* %s/adt_installer-QA", "DEST")],
+                            workdir=tmpdir + "/deploy/sdk",
+                            env=copy.copy(defaultenv),
+                            timeout=14400))
+        elif artifact == "adtrepo-dev":
+            factory.addStep(ShellCommand(
+                            description="Making dev adtrepo ipk dir",
+                            command=["mkdir", "-p", WithProperties("%s/%s-%s-%s/adt-ipk", "ADTREPO_DEV_PATH", "SDKVERSION", "branch", "got_revision")],
+                            env=copy.copy(defaultenv),
+                            timeout=14400))
+            factory.addStep(ShellCommand(
+                            description=["Copying ipks for QA"],
+                            command=["sh", "-c", WithProperties("cp -R * %s/%s-%s-%s/adt-ipk", "ADTREPO_DEV_PATH", "SDKVERSION", "branch", "got_revision")],
+                            workdir=tmpdir + "/deploy/ipk",
+                            env=copy.copy(defaultenv),
+                            timeout=14400))
+            factory.addStep(ShellCommand(
+                            description="Making dev adtrepo images dir",
+                            command=["mkdir", "-p", WithProperties("%s/%s-%s-%s/rootfs", "ADTREPO_DEV_PATH", "SDKVERSION", "branch", "got_revision")],
+                            env=copy.copy(defaultenv),
+                            timeout=14400))
+            factory.addStep(ShellCommand(
+                            description=["Copying images for adtrepo"],
+                            command=["sh", "-c", WithProperties("for x in `ls %s/machines/qemu/|grep -v tiny`; do if [ $x != 'qemu' ]; then cp -R %s/machines/qemu/* %s/%s-%s-%s/rootfs; fi; done", "DEST", "DEST", "ADTREPO_DEV_PATH", "SDKVERSION", "branch", "got_revision")],
+                            env=copy.copy(defaultenv),
+                            timeout=14400))
         elif artifact == "build-appliance":
             factory.addStep(ShellCommand(
                             description="Making build-appliance dir",
@@ -1037,7 +1144,18 @@ defaultenv['SDKMACHINE'] = 'x86_64'
 runImage(f65, 'qemux86', 'package-index', "poky", False, "yocto", False)
 publishArtifacts(f65, "ipk", "build/build/tmp")
 publishArtifacts(f65, "rpm", "build/build/tmp")
-runImage(f65, 'qemux86', 'adt-installer', "poky", False, "yocto", False)
+setSDKVERSION(f65, defaultenv)
+if ADTREPO_GENERATE_INSTALLER == "True":
+    defaultenv["ADTDEV"]="False"
+    runImage(f65, 'qemux86', 'adt-installer', "poky", False, "yocto", False)
+    publishArtifacts(f65, "adt_installer", "build/build/tmp")
+if ADTREPO_GENERATE_DEV_INSTALLER == "True":
+    defaultenv["ADTDEV"]="True"
+    runImage(f65, 'qemux86', 'adt-installer', "poky", False, "yocto", False)
+    publishArtifacts(f65, "adt_installer-QA", "build/build/tmp")
+    defaultenv["ADTDEV"]="False"
+if ADTREPO_DEV_POPULATE == "True":
+    publishArtifacts(f65, "adtrepo-dev", "build/build/tmp")
 publishArtifacts(f65, "adt_installer", "build/build/tmp")
 b65 = {'name': "nightly",
       'slavenames': ["builder1"],
