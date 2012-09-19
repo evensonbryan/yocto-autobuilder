@@ -463,7 +463,7 @@ def runImage(factory, machine, image, distro, bsplayer, provider, buildhistory):
                     command=["yocto-autobuild-preamble"],
                     workdir="build", 
                     env=copy.copy(defaultenv),
-                    timeout=14400)
+                    timeout=24400)
     if distro.startswith("poky"):
         buildprovider="yocto"
     else:
