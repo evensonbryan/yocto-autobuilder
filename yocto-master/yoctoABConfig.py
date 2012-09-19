@@ -570,12 +570,14 @@ def getRepo(step):
                     step.setProperty("otherbranch", release)
                     break
                 else:
-                    step.setProperty("otherbranch", "master")       
+                    step.setProperty("otherbranch", "master")
+            step.setProperty("short-repo-name", "poky-contrib")
         elif gittype == "git://git.yoctoproject.org/poky":
             if branch != "master":
                 step.setProperty("otherbranch", branch)
             else:
                 step.setProperty("otherbranch", "master")
+        step.setProperty("short-repo-name", "poky")
     except: 
         step.setProperty("otherbranch", branch)
         pass
@@ -798,21 +800,11 @@ def runPostamble(factory):
                         command=["mkdir", "-p", "yocto"],
                         env=copy.copy(defaultenv),
                         timeout=14400))
-
-        #factory.addStep(ShellCommand(doStepIf=getRepo, description="Grabbing git archive",
-        #                command=["sh", "-c", WithProperties("git remote add archive %s; git remote update", defaultenv["POKYREPO"])],
-        #                timeout=2000))
-        #factory.addStep(ShellCommand, description="Creating tarball",
-        #                command=["sh", "-c", WithProperties("git archive %s --remote=contrib --format=tar | bzip2 >yocto.tar.gz", "otherbranch")],
-        #                timeout=2600)
-        # Sometimes, if you're building for a master under test branch, the actual revision for 
-        # the git archive goes MIA. In which case, we'll fail quietly here. Other than that single 
-        # use case (which for us, is quite often), this should function fine.
         factory.addStep(ShellCommand(doStepIf=getRepo, warnOnFailure=True, description="Grabbing git archive",
-                        command=["sh", "-c", WithProperties("wget %s/snapshot/poky-%s.tar.bz2", "cgitrepo", "got_revision")],
+                        command=["sh", "-c", WithProperties("wget %s/snapshot/%s-%s.tar.bz2", "cgitrepo", "short-repo-name", "got_revision")],
                         timeout=600))
         factory.addStep(ShellCommand(doStepIf=getRepo, warnOnFailure=True, description="Moving tarball",  
-                        command=["sh", "-c", WithProperties("mv poky-%s.tar.bz2 %s", "got_revision", "DEST")],
+                        command=["sh", "-c", WithProperties("mv %s-%s.tar.bz2 %s", "short-repo-name", "got_revision", "DEST")],
                         timeout=600))
 def buildBSPLayer(factory, distrotype, btarget, provider):
     if distrotype == "poky":
