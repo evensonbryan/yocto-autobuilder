@@ -341,11 +341,7 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
     fout = fout + 'SDKMACHINE ?= "i586"\n'
     if defaultenv["ADTDEV"]=="True":
         factory.addStep(ShellCommand(doStepIf=checkYoctoBSPLayer, description="Adding dev adt-repo to auto.conf",
-                        command=['echo', WithProperties('ADTREPO ?= \"'+ defaultenv["ADTREPO_DEV_URL"] +'/${SDK_VERSION}-%s-%s\"\n', "branch",  "got_revision"), ">> \" + AUTOCONF"],
-                        timeout=60))
-    else:
-        factory.addStep(ShellCommand(doStepIf=checkYoctoBSPLayer, description="Adding dev adt-repo to auto.conf",
-                        command="echo 'ADTREPO ?= \"" + defaultenv["ADTREPO_URL"] + "/${SDK_VERSION}\"\n' >> " + AUTOCONF,
+                        command=["sh", "-c", WithProperties("echo 'ADTREPO = \"" + defaultenv["ADTREPO_DEV_URL"] + "/%s-%s\" \n' > " + AUTOCONF, "SDKVERSION", "got_revision")],
                         timeout=60))
     if 'build-appliance' in defaultenv['ABTARGET']:
         fout = fout + 'DL_DIR ?= "${TOPDIR}/downloads"\n'
@@ -412,7 +408,7 @@ def setSDKVERSION(factory, defaultenv):
         slavehome = defaultenv['ABTARGET']
     SDKVERSION = defaultenv['SLAVEBASEDIR'] + "/" + slavehome + "/build/meta-yocto/conf/distro/poky.conf"
     factory.addStep(shell.SetProperty(
-                    command="cat " + SDKVERSION + "|grep DISTRO_VERSION |sed 's/DISTRO_VERSION = \"//'|sed 's/-${DATE}//'|sed 's/\"//'",
+                    command="cat " + SDKVERSION + "|grep 'DISTRO_VERSION ='|sed 's/DISTRO_VERSION = //'|sed 's/-${DATE}//'|sed 's/\"//g'",
                     property="SDKVERSION"))
 
 def checkYoctoBSPLayer(step):
@@ -485,7 +481,7 @@ def runImage(factory, machine, image, distro, bsplayer, provider, buildhistory):
     factory.addStep(ShellCommand, description=["Building", machine, image],
                     command=["yocto-autobuild", image, "-k"],
                     env=copy.copy(defaultenv),
-                    timeout=14400)
+                    timeout=24400)
 
 def runSanityTest(factory, machine, image):
     defaultenv['MACHINE'] = machine
@@ -577,7 +573,7 @@ def getRepo(step):
                 step.setProperty("otherbranch", branch)
             else:
                 step.setProperty("otherbranch", "master")
-        step.setProperty("short-repo-name", "poky")
+            step.setProperty("short-repo-name", "poky")
     except: 
         step.setProperty("otherbranch", branch)
         pass
@@ -858,25 +854,58 @@ def publishArtifacts(factory, artifact, tmpdir):
                             env=copy.copy(defaultenv),
                             timeout=14400))
         elif artifact == "adtrepo-dev":
-            factory.addStep(ShellCommand(
+            factory.addStep(ShellCommand(warnOnFailure=True,
                             description="Making dev adtrepo ipk dir",
-                            command=["mkdir", "-p", WithProperties("%s/%s-%s-%s/adt-ipk", "ADTREPO_DEV_PATH", "SDKVERSION", "branch", "got_revision")],
+                            command=["mkdir", "-p", WithProperties("%s/%s-%s/adt-ipk", "ADTREPO_DEV_PATH", "SDKVERSION", "got_revision")],
                             env=copy.copy(defaultenv),
                             timeout=14400))
-            factory.addStep(ShellCommand(
+            factory.addStep(ShellCommand(warnOnFailure=True,
                             description=["Copying ipks for QA"],
-                            command=["sh", "-c", WithProperties("cp -R * %s/%s-%s-%s/adt-ipk", "ADTREPO_DEV_PATH", "SDKVERSION", "branch", "got_revision")],
+                            command=["sh", "-c", WithProperties("cp -R * %s/%s-%s/adt-ipk", "ADTREPO_DEV_PATH", "SDKVERSION",  "got_revision")],
                             workdir=tmpdir + "/deploy/ipk",
                             env=copy.copy(defaultenv),
                             timeout=14400))
-            factory.addStep(ShellCommand(
+            factory.addStep(ShellCommand(warnOnFailure=True,
                             description="Making dev adtrepo images dir",
-                            command=["mkdir", "-p", WithProperties("%s/%s-%s-%s/rootfs", "ADTREPO_DEV_PATH", "SDKVERSION", "branch", "got_revision")],
+                            command=["mkdir", "-p", WithProperties("%s/%s-%s/rootfs", "ADTREPO_DEV_PATH", "SDKVERSION", "got_revision")],
                             env=copy.copy(defaultenv),
                             timeout=14400))
-            factory.addStep(ShellCommand(
+            factory.addStep(ShellCommand(warnOnFailure=True,
+                            description=["Copying images for adtrepo-dev"],
+                            command=["sh", "-c", WithProperties("for x in `ls %s/machines/qemu/|grep -v tiny`; do if [ $x != 'qemu' ]; then rsync -av %s/machines/qemu/* %s/%s-%s/rootfs; fi; done", "DEST", "DEST", "ADTREPO_DEV_PATH", "SDKVERSION", "got_revision")],
+                            env=copy.copy(defaultenv),
+                            timeout=14400))
+            factory.addStep(ShellCommand(warnOnFailure=True,
+                            description=["qemux86-64 adtrepo fix"],
+                            command=["sh", "-c", WithProperties("mv %s/%s-%s/rootfs/qemux86-64 %s/%s-%s/rootfs/qemux86_64", "ADTREPO_DEV_PATH", "SDKVERSION", "got_revision", "ADTREPO_DEV_PATH", "SDKVERSION", "got_revision")],
+                            env=copy.copy(defaultenv),
+                            timeout=14400))
+# This could do with some DRYing up.
+        elif artifact == "adtrepo":
+            factory.addStep(ShellCommand(warnOnFailure=True,
+                            description="Making adtrepo ipk dir",
+                            command=["mkdir", "-p", WithProperties("%s/%s-%s/adt-ipk", "ADTREPO_PATH", "SDKVERSION", "got_revision")],
+                            env=copy.copy(defaultenv),
+                            timeout=14400))
+            factory.addStep(ShellCommand(warnOnFailure=True,
+                            description=["Copying ipks for adtrepo"],
+                            command=["sh", "-c", WithProperties("cp -R * %s/%s-%s/adt-ipk", "ADTREPO_PATH", "SDKVERSION",  "got_revision")],
+                            workdir=tmpdir + "/deploy/ipk",
+                            env=copy.copy(defaultenv),
+                            timeout=14400))
+            factory.addStep(ShellCommand(warnOnFailure=True,
+                            description="Making adtrepo images dir",
+                            command=["mkdir", "-p", WithProperties("%s/%s-%s/rootfs", "ADTREPO_PATH", "SDKVERSION", "got_revision")],
+                            env=copy.copy(defaultenv),
+                            timeout=14400))
+            factory.addStep(ShellCommand(warnOnFailure=True,
                             description=["Copying images for adtrepo"],
-                            command=["sh", "-c", WithProperties("for x in `ls %s/machines/qemu/|grep -v tiny`; do if [ $x != 'qemu' ]; then cp -R %s/machines/qemu/* %s/%s-%s-%s/rootfs; fi; done", "DEST", "DEST", "ADTREPO_DEV_PATH", "SDKVERSION", "branch", "got_revision")],
+                            command=["sh", "-c", WithProperties("for x in `ls %s/machines/qemu/|grep -v tiny`; do if [ $x != 'qemu' ]; then rsync -av %s/machines/qemu/* %s/%s-%s/rootfs; fi; done", "DEST", "DEST", "ADTREPO_PATH","SDKVERSION", "got_revision")],
+                            env=copy.copy(defaultenv),
+                            timeout=14400))
+            factory.addStep(ShellCommand(warnOnFailure=True,
+                            description=["qemux86-64 adtrepo fix"],
+                            command=["mv", WithProperties("%s/%s-%s/rootfs/qemux86-64 %s/%s-%s/rootfs/qemux86_64", "ADTREPO_PATH", "SDKVERSION", "got_revision", "ADTREPO_PATH", "SDKVERSION", "got_revision")],
                             env=copy.copy(defaultenv),
                             timeout=14400))
         elif artifact == "build-appliance":
@@ -1026,6 +1055,29 @@ def publishArtifacts(factory, artifact, tmpdir):
 #
 ################################################################################
 
+#f0 = factory.BuildFactory()
+#defaultenv['DISTRO'] = 'poky'
+#defaultenv['ABTARGET'] = 'nightly-test'
+#defaultenv['ENABLE_SWABBER'] = 'false'
+#defaultenv['MIGPL']="False"
+#defaultenv['REVISION'] = "HEAD"
+#makeCheckout(f0)
+#runPreamble(f0, defaultenv['ABTARGET'])
+#setSDKVERSION(f0, defaultenv)
+#if ADTREPO_GENERATE_DEV_INSTALLER == "True":
+#    defaultenv["ADTDEV"]="True"
+#    runImage(f0, 'qemux86', 'adt-installer', "poky", False, "yocto", False)
+#    publishArtifacts(f0, "adt_installer-QA", "build/build/tmp")
+#    defaultenv["ADTDEV"]="False"
+#b0 = {'name': "nightly-test",
+#      'slavenames': ["ab01.i.yoctoproject.org"],
+#      'builddir': "nightly-test",
+#      'factory': f0
+#      }
+#
+#yocto_builders.append(b0)
+
+
 ################################################################################
 #
 # Nightly Release Builder
@@ -1148,7 +1200,6 @@ if ADTREPO_GENERATE_DEV_INSTALLER == "True":
     defaultenv["ADTDEV"]="False"
 if ADTREPO_DEV_POPULATE == "True":
     publishArtifacts(f65, "adtrepo-dev", "build/build/tmp")
-publishArtifacts(f65, "adt_installer", "build/build/tmp")
 b65 = {'name': "nightly",
       'slavenames': ["builder1"],
       'builddir': "nightly",
