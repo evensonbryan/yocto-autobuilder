@@ -300,8 +300,7 @@ def createBBLayersConf(factory, defaultenv, btarget=None, bsplayer=False, provid
         fout = fout + defaultenv['SLAVEBASEDIR'] + "/" + slavehome + "/build/meta \ \n"
         fout = fout + defaultenv['SLAVEBASEDIR'] + "/" + slavehome + "/build/meta-yocto \ \n"
     elif buildprovider=="oe":
-        fout = fout + defaultenv['SLAVEBASEDIR'] + "/" + slavehome + "/build/meta-openembedded \ \n"
-        fout = fout + defaultenv['SLAVEBASEDIR'] + "/" + slavehome + "/build/meta-openembedded/meta-oe \ \n"
+        fout = fout + defaultenv['SLAVEBASEDIR'] + "/" + slavehome + "/build/meta \ \n"
     if bsplayer==True and provider=="intel":
         if defaultenv['BRANCH'] != "edison":
              fout = fout + defaultenv['SLAVEBASEDIR'] + "/" + slavehome + '/build/yocto/meta-intel' + ' \ \n'
@@ -313,9 +312,14 @@ def createBBLayersConf(factory, defaultenv, btarget=None, bsplayer=False, provid
     factory.addStep(ShellCommand(description="Creating bblayers.conf",
                     command="echo '" +  fout + "'>>" + BBLAYER,
                     timeout=60))
-    factory.addStep(ShellCommand(doStepIf=checkYoctoBSPLayer, description="Adding meta-yocto-bsp layer to bblayers.conf",
-                    command="echo 'BBLAYERS += \"" + defaultenv['SLAVEBASEDIR'] + "/" + slavehome + "/build/meta-yocto-bsp\"'>>" + BBLAYER,
-                    timeout=60))
+    if buildprovider=="yocto":
+        factory.addStep(ShellCommand(doStepIf=checkYoctoBSPLayer, description="Adding meta-yocto-bsp layer to bblayers.conf",
+                        command="echo 'BBLAYERS += \"" + defaultenv['SLAVEBASEDIR'] + "/" + slavehome + "/build/meta-yocto-bsp\"'>>" + BBLAYER,
+                        timeout=60))
+    if defaultenv['ABTARGET'] == 'nightly-x32':
+        factory.addStep(ShellCommand(doStepIf=lambda(step): step.build.getProperties().has_key("PRE13"), description="Adding meta-x32 layer to bblayers.conf",
+                        command="echo 'BBLAYERS += \"" + defaultenv['SLAVEBASEDIR'] + "/" + slavehome + "/build/meta-x32\"'>>" + BBLAYER,
+                        timeout=60))
 
 def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory="False"):
     sstate_branch = ""
@@ -359,9 +363,18 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
         fout = fout + 'require conf/multilib.conf \n'
         fout = fout + 'MULTILIBS = "multilib:lib32" \n'
         fout = fout + 'DEFAULTTUNE_virtclass-multilib-lib32 = "x86" \n'
-        fout = fout + 'SSTATE_DIR ?= "' + defaultenv['SSTATE_DIR'] + '/multilib" \n'
+        factory.addStep(ShellCommand(doStepIf=checkMultiOSSState, description="Adding sstate_dir to auto.conf",
+                        command=["sh", "-c", WithProperties("echo 'SSTATE_DIR ?= \"" + defaultenv['SSTATE_DIR'] + "/multilib\"\n' >> " + AUTOCONF)],
+                        timeout=60))
     else:
-        fout = fout + 'SSTATE_DIR ?= "' + defaultenv['SSTATE_DIR'] + '/" \n'
+        factory.addStep(ShellCommand(doStepIf=checkMultiOSSState, description="Adding shared sstate_dir to auto.conf",
+                        command=["sh", "-c", WithProperties("echo 'SSTATE_DIR ?= \"" + defaultenv['SSTATE_DIR'] + "\"\n' >> " + AUTOCONF)],
+                        timeout=60))
+        factory.addStep(ShellCommand(doStepIf=(lambda(step): step.build.getProperties().has_key("PRE13")),  description="Adding non-shared sstate_dir to auto.conf",
+                        command=["sh", "-c", WithProperties("echo 'SSTATE_DIR ?= \"" + defaultenv['SLAVEBASEDIR'] + "/pre-1.3-sstate\"\n' >> " + AUTOCONF)],
+                        timeout=60))
+    if "x32" in defaultenv['ABTARGET']:
+        fout = fout + 'DEFAULTTUNE = "x86-64-x32" \n'
     if "gpl3" in defaultenv['ABTARGET']:
         fout = fout + 'INCOMPATIBLE_LICENSE = "GPLv3" \n'
     if distro == "poky-rt":
@@ -384,6 +397,10 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
     factory.addStep(ShellCommand(doStepIf=doNightlyArchTest, description="Adding buildhistory to auto.conf",
                     command="echo '" +  fout + "'>>" + AUTOCONF,
                     timeout=60))
+    if "x32" in defaultenv['ABTARGET']:
+        factory.addStep(ShellCommand(description="Adding x32 support to auto.conf",
+                        command="echo -e 'baselib = \\042${@d.getVar(\\047BASE_LIB_tune-\\047 + (d.getVar(\\047DEFAULTTUNE\\047, True) or \\047INVALID\\047), True) or \\047lib\\047}\\042 \n' >> " + AUTOCONF,
+                        timeout=60))
 
 def doMasterTest(step):
     branch = step.getProperty("branch")
@@ -414,6 +431,7 @@ def setSDKVERSION(factory, defaultenv):
 def checkYoctoBSPLayer(step):
     lconf = step.getProperty("LCONF_VERSION")
     if int(lconf) < 5:
+        step.setProperty("PRE13", "True")
         return False
     else:
         return True
@@ -524,10 +542,6 @@ def runPreamble(factory, target):
     factory.addStep(ShellCommand(
                     description=["Building on", WithProperties("%s", "HOSTNAME"),  WithProperties("%s", "UNAME")],
                     command=["echo", WithProperties("%s", "HOSTNAME"),  WithProperties("%s", "UNAME")]))
-    factory.addStep(ShellCommand(doStepIf=getCleanSS,
-                description="Prepping for nightly creation by removing SSTATE", 
-                timeout=62400,
-                command=["rm", "-rf", defaultenv['SSTATE_DIR']+"*", defaultenv['LSB_SSTATE_DIR']+"*"]))
     factory.addStep(setDest(workdir=WithProperties("%s", "workdir"), btarget=target, abbase=defaultenv['ABBASE']))
     factory.addStep(ShellCommand(doStepIf=getRepo,
                     description="Getting the requested git repo",
@@ -574,7 +588,8 @@ def getRepo(step):
             else:
                 step.setProperty("otherbranch", "master")
             step.setProperty("short-repo-name", "poky")
-    except: 
+    except:
+        step.setProperty("short-repo-name", "poky")
         step.setProperty("otherbranch", branch)
         pass
     cgitrepo = gitrepo.replace("git://git.yoctoproject.org/",  "http://git.yoctoproject.org/cgit/cgit.cgi/")
@@ -582,6 +597,24 @@ def getRepo(step):
     defaultenv['BRANCH']=step.getProperty("otherbranch")
     return True
 
+def setOECoreRepo(step):
+    step.setProperty("repository", "git://git.openembedded.org/openembedded-core")
+    step.setProperty("repourl", "git://git.openembedded.org/openembedded-core")
+    step.setProperty("branch", "master")
+    step.setProperty("short-repo-name", "openembedded-core")
+    step.setProperty("otherbranch", "master")
+    cgitrepo = ("http://git.openembedded.org/cgit/cgit.cgi/")
+    step.setProperty("cgitrepo", cgitrepo)
+    defaultenv['BRANCH']=step.getProperty("otherbranch")
+    return True
+
+def checkMultiOSSState(step):
+    branch = step.getProperty("otherbranch")
+    if branch == 'edison' or branch == 'denzil':
+        step.setProperty("PRE13", "True")
+        return False
+    return True
+ 
 def getTag(step):
     try:
         tag = step.getProperty("pokytag")
@@ -591,24 +624,44 @@ def getTag(step):
     return True
 
 def makeCheckout(factory):
-    factory.addStep(ShellCommand(doStepIf=getRepo,
-                    description="Getting the requested git repo",
-                    command='echo "Getting the requested git repo"'))
-    factory.addStep(Git(
-                    mode="clobber", 
-                    branch=WithProperties("%s", "branch"),
-                    timeout=10000, retry=(5, 3)))
-    factory.addStep(ShellCommand(doStepIf=getTag, command=["git", "checkout",  WithProperties("%s", "pokytag")], timeout=1000))
-    factory.addStep(ShellCommand(workdir="build", command=["git", "clone",  "git://git.yoctoproject.org/meta-qt3.git"], timeout=1000))
-    factory.addStep(ShellCommand(doStepIf=getTag, workdir="build/meta-qt3", command=["git", "checkout",  WithProperties("%s", "otherbranch")], timeout=1000))
-    factory.addStep(shell.SetProperty(workdir="build/meta-qt3",
-                    command="git rev-parse HEAD",
-                    property="QTHASH"))
-    factory.addStep(ShellCommand(
-                    description=["Building", WithProperties("%s", "branch"),  WithProperties("%s", "repository")],
-                    command=["echo", WithProperties("%s", "branch"),  WithProperties("%s", "repository")]))
+    if defaultenv['ABTARGET'] != "oecore":
+        factory.addStep(ShellCommand(doStepIf=getRepo,
+                        description="Getting the requested git repo",
+                        command='echo "Getting the requested git repo"'))
+        factory.addStep(Git(
+                        mode="clobber", 
+                        branch=WithProperties("%s", "branch"),
+                        timeout=10000, retry=(5, 3)))
+        factory.addStep(ShellCommand(doStepIf=getTag, command=["git", "checkout",  WithProperties("%s", "pokytag")], timeout=1000))
+        factory.addStep(ShellCommand(workdir="build", command=["git", "clone",  "git://git.yoctoproject.org/meta-qt3.git"], timeout=1000))
+        factory.addStep(ShellCommand(doStepIf=getTag, workdir="build/meta-qt3", command=["git", "checkout",  WithProperties("%s", "otherbranch")], timeout=1000))
+        factory.addStep(shell.SetProperty(workdir="build/meta-qt3",
+                        command="git rev-parse HEAD",
+                        property="QTHASH"))
+        factory.addStep(ShellCommand(
+                        description=["Building", WithProperties("%s", "branch"),  WithProperties("%s", "repository")],
+                        command=["echo", WithProperties("%s", "branch"),  WithProperties("%s", "repository")]))
+    elif defaultenv['ABTARGET'] == "oecore":
+        factory.addStep(ShellCommand(doStepIf=setOECoreRepo,
+                        description="Getting the requested git repo",
+                        command='echo "Getting the requested git repo"'))
+        factory.addStep(Git(
+                        mode="clobber",
+                        repourl="git://git.openembedded.org/openembedded-core",
+                        branch="master",
+                        timeout=10000, retry=(5, 3)))
+        factory.addStep(ShellCommand(workdir="build", command=["git", "clone",  "git://git.yoctoproject.org/meta-qt3.git"], timeout=1000))
+        factory.addStep(ShellCommand(workdir="build", command=["git", "clone", "git://git.openembedded.org/bitbake"], timeout=1000))
+        factory.addStep(ShellCommand(doStepIf=getTag, workdir="build/meta-qt3", command=["git", "checkout",  WithProperties("%s", "otherbranch")], timeout=1000))
+        factory.addStep(shell.SetProperty(workdir="build/meta-qt3",
+                        command="git rev-parse HEAD",
+                        property="QTHASH"))
+        factory.addStep(ShellCommand(
+                        description=["Building OE-Core Master"],
+                        command=["echo", "Building OE-Core Master"]))
+    elif defaultenv['ABTARGET'] == "nightly-x32": 
+        factory.addStep(ShellCommand(doStepIf=checkMultiOSSState, workdir="build", command=["git", "clone",  "git://git.yoctoproject.org/meta-qt3.git"], timeout=1000))
 
-                    
 def makeTarball(factory):
     factory.addStep(ShellCommand, description="Generating release tarball", 
                     command=["yocto-autobuild-generate-sources-tarball", "nightly", "1.1pre", 
@@ -697,7 +750,8 @@ def getCleanSS(step):
         cleansstate = step.getProperty("cleansstate")
     except:
         cleansstate = False
-    if cleansstate=="True":
+    if cleansstate=="True" and not step.build.getProperties().has_key("donecleansstate"):
+        step.setProperty("donecleansstate", True)
         return True
     else:
         return False
@@ -788,6 +842,9 @@ def runPostamble(factory):
                     env=copy.copy(defaultenv),
                     timeout=14400))
     if PUBLISH_BUILDS == "True":
+        factory.addStep(ShellCommand, warnOnFailure=True, description="Ensuring DEST directory exists",
+                        command=["sh", "-c", WithProperties("mkdir -p %s", "DEST")],
+                        timeout=20)
         factory.addStep(ShellCommand, description="Creating CURRENT link",
                         command=["sh", "-c", WithProperties("rm -rf %s/../CURRENT; ln -s %s %s/../CURRENT", "DEST", "DEST", "DEST")],
                         timeout=20)
@@ -796,12 +853,21 @@ def runPostamble(factory):
                         command=["mkdir", "-p", "yocto"],
                         env=copy.copy(defaultenv),
                         timeout=14400))
+    if defaultenv['ABTARGET'] != "oecore":
         factory.addStep(ShellCommand(doStepIf=getRepo, warnOnFailure=True, description="Grabbing git archive",
                         command=["sh", "-c", WithProperties("wget %s/snapshot/%s-%s.tar.bz2", "cgitrepo", "short-repo-name", "got_revision")],
                         timeout=600))
         factory.addStep(ShellCommand(doStepIf=getRepo, warnOnFailure=True, description="Moving tarball",  
                         command=["sh", "-c", WithProperties("mv %s-%s.tar.bz2 %s", "short-repo-name", "got_revision", "DEST")],
                         timeout=600))
+    elif defaultenv['ABTARGET'] == "oecore":
+        factory.addStep(ShellCommand(doStepIf=setOECoreRepo, warnOnFailure=True, description="Grabbing git archive",
+                        command=["sh", "-c", WithProperties("wget %s/snapshot/%s-%s.tar.bz2", "cgitrepo", "short-repo-name", "got_revision")],
+                        timeout=600))
+        factory.addStep(ShellCommand(doStepIf=setOECoreRepo, warnOnFailure=True, description="Moving tarball",
+                        command=["sh", "-c", WithProperties("mv %s-%s.tar.bz2 %s", "short-repo-name", "got_revision", "DEST")],
+                        timeout=600))
+
 def buildBSPLayer(factory, distrotype, btarget, provider):
     if distrotype == "poky":
         defaultenv['DISTRO'] = 'poky'
@@ -837,7 +903,7 @@ def publishArtifacts(factory, artifact, tmpdir):
                             timeout=14400))
             factory.addStep(ShellCommand(
                             description=["Copying adt_installer"],
-                            command=["sh", "-c", WithProperties("cp -R *adt* %s/adt_installer", "DEST")],
+                            command=["sh", "-c", WithProperties("cp -R --no-dereference --preserve=links *adt* %s/adt_installer", "DEST")],
                             workdir=tmpdir + "/deploy/sdk",
                             env=copy.copy(defaultenv),
                             timeout=14400))
@@ -849,11 +915,16 @@ def publishArtifacts(factory, artifact, tmpdir):
                             timeout=14400))
             factory.addStep(ShellCommand(
                             description=["Copying adt_installer for QA"],
-                            command=["sh", "-c", WithProperties("cp -R *adt* %s/adt_installer-QA", "DEST")],
+                            command=["sh", "-c", WithProperties("cp -R --no-dereference --preserve=links *adt* %s/adt_installer-QA", "DEST")],
                             workdir=tmpdir + "/deploy/sdk",
                             env=copy.copy(defaultenv),
                             timeout=14400))
         elif artifact == "adtrepo-dev":
+            factory.addStep(ShellCommand(warnOnFailure=True,
+                            description="removing old ipk dir",
+                            command=["rm", "-rf", WithProperties("%s/%s-%s/adt-ipk", "ADTREPO_PATH", "SDKVERSION", "got_revision")],
+                            env=copy.copy(defaultenv),
+                            timeout=14400))
             factory.addStep(ShellCommand(warnOnFailure=True,
                             description="Making dev adtrepo ipk dir",
                             command=["mkdir", "-p", WithProperties("%s/%s-%s/adt-ipk", "ADTREPO_DEV_PATH", "SDKVERSION", "got_revision")],
@@ -861,7 +932,7 @@ def publishArtifacts(factory, artifact, tmpdir):
                             timeout=14400))
             factory.addStep(ShellCommand(warnOnFailure=True,
                             description=["Copying ipks for QA"],
-                            command=["sh", "-c", WithProperties("cp -R * %s/%s-%s/adt-ipk", "ADTREPO_DEV_PATH", "SDKVERSION",  "got_revision")],
+                            command=["sh", "-c", WithProperties("cp -R --no-dereference --preserve=links * %s/%s-%s/adt-ipk", "ADTREPO_DEV_PATH", "SDKVERSION",  "got_revision")],
                             workdir=tmpdir + "/deploy/ipk",
                             env=copy.copy(defaultenv),
                             timeout=14400))
@@ -889,7 +960,7 @@ def publishArtifacts(factory, artifact, tmpdir):
                             timeout=14400))
             factory.addStep(ShellCommand(warnOnFailure=True,
                             description=["Copying ipks for adtrepo"],
-                            command=["sh", "-c", WithProperties("cp -R * %s/%s-%s/adt-ipk", "ADTREPO_PATH", "SDKVERSION",  "got_revision")],
+                            command=["sh", "-c", WithProperties("cp -R --no-dereference --preserve=links * %s/%s-%s/adt-ipk", "ADTREPO_PATH", "SDKVERSION",  "got_revision")],
                             workdir=tmpdir + "/deploy/ipk",
                             env=copy.copy(defaultenv),
                             timeout=14400))
@@ -916,7 +987,7 @@ def publishArtifacts(factory, artifact, tmpdir):
                             timeout=14400))
             factory.addStep(ShellCommand(
                             description=["Copying build-appliance"],
-                            command=["sh", "-c", WithProperties("cp -R * %s/build-appliance", "DEST")],
+                            command=["sh", "-c", WithProperties("cp -R --no-dereference --preserve=links * %s/build-appliance", "DEST")],
                             workdir=tmpdir + "/deploy/images",
                             env=copy.copy(defaultenv),
                             timeout=14400))
@@ -928,7 +999,7 @@ def publishArtifacts(factory, artifact, tmpdir):
                             timeout=14400))
             factory.addStep(ShellCommand(
                             description=["Copying i686 toolchain"],
-                            command=["sh", "-c", WithProperties("cp -Rd poky-eglibc-i686* %s/toolchain/i686", "DEST")],
+                            command=["sh", "-c", WithProperties("cp -R --no-dereference --preserve=links poky-eglibc-i686* %s/toolchain/i686", "DEST")],
                             workdir=tmpdir + "/deploy/sdk",
                             env=copy.copy(defaultenv), 
                             timeout=14400))
@@ -939,11 +1010,33 @@ def publishArtifacts(factory, artifact, tmpdir):
                             timeout=14400))
             factory.addStep(ShellCommand(
                             description=["Copying x86-64 toolchain"],
-                            command=["sh", "-c", WithProperties("cp -Rd poky-eglibc-x86_64* %s/toolchain/x86_64", "DEST")],
+                            command=["sh", "-c", WithProperties("cp -R --no-dereference --preserve=links poky-eglibc-x86_64* %s/toolchain/x86_64", "DEST")],
                             workdir=tmpdir + "/deploy/sdk", 
                             env=copy.copy(defaultenv),
                             timeout=14400))
-
+        elif artifact == "oe-toolchain":
+            factory.addStep(ShellCommand(
+                            description="Making toolchain deploy dir",
+                            command=["mkdir", "-p", WithProperties("%s/toolchain/i686", "DEST")],
+                            env=copy.copy(defaultenv),
+                            timeout=14400))
+            factory.addStep(ShellCommand(
+                            description=["Copying i686 toolchain"],
+                            command=["sh", "-c", WithProperties("cp -R --no-dereference --preserve=links oecore-i686* %s/toolchain/i686", "DEST")],
+                            workdir=tmpdir + "/deploy/sdk",
+                            env=copy.copy(defaultenv),
+                            timeout=14400))
+            factory.addStep(ShellCommand(
+                            description=["Making toolchain deploy dir"],
+                            command=["mkdir", '-p', WithProperties("%s/toolchain/x86_64", "DEST")],
+                            env=copy.copy(defaultenv),
+                            timeout=14400))
+            factory.addStep(ShellCommand(
+                            description=["Copying x86-64 toolchain"],
+                            command=["sh", "-c", WithProperties("cp -R --no-dereference --preserve=links oecore-x86_64* %s/toolchain/x86_64", "DEST")],
+                            workdir=tmpdir + "/deploy/sdk",
+                            env=copy.copy(defaultenv),
+                            timeout=14400))
         elif artifact.startswith("qemu"):
             if artifact == "qemux86-tiny":
                 factory.addStep(ShellCommand(
@@ -953,7 +1046,7 @@ def publishArtifacts(factory, artifact, tmpdir):
                                 timeout=14400))
                 factory.addStep(ShellCommand(
                                 description=["Copying " + artifact + " artifacts"],
-                                command=["sh", "-c", WithProperties("cp -Rd * %s/machines/qemu/qemux86-tiny", 'DEST')],
+                                command=["sh", "-c", WithProperties("cp -R --no-dereference --preserve=links * %s/machines/qemu/qemux86-tiny", 'DEST')],
                                 workdir=tmpdir + "/deploy/images",
                                 env=copy.copy(defaultenv),
                                 timeout=14400))
@@ -965,7 +1058,7 @@ def publishArtifacts(factory, artifact, tmpdir):
                                 timeout=14400))
                 factory.addStep(ShellCommand(
                                 description=["Copying " + artifact + " artifacts"],
-                                command=["sh", "-c", WithProperties("cp -Rd *%s* %s/machines/qemu/%s", 'ARTIFACT', 'DEST', 'ARTIFACT')],
+                                command=["sh", "-c", WithProperties("cp -R --no-dereference --preserve=links *%s* %s/machines/qemu/%s", 'ARTIFACT', 'DEST', 'ARTIFACT')],
                                 workdir=tmpdir + "/deploy/images",
                                 env=copy.copy(defaultenv),
                                 timeout=14400))
@@ -977,7 +1070,7 @@ def publishArtifacts(factory, artifact, tmpdir):
                             timeout=14400))
             factory.addStep(ShellCommand(
                             description=["Copying " + artifact + " artifacts"],
-                            command=["sh", "-c", WithProperties("cp -Rd *mpc8315*rdb* %s/machines/%s", 'DEST', 'ARTIFACT')],
+                            command=["sh", "-c", WithProperties("cp -R --no-dereference --preserve=links *mpc8315*rdb* %s/machines/%s", 'DEST', 'ARTIFACT')],
                             workdir=tmpdir + "/deploy/images",
                             env=copy.copy(defaultenv),
                             timeout=14400))
@@ -1083,84 +1176,88 @@ def publishArtifacts(factory, artifact, tmpdir):
 # Nightly Release Builder
 #
 ################################################################################
-f65 = factory.BuildFactory()
+f1 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'nightly'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
-makeCheckout(f65)
-runPreamble(f65, defaultenv['ABTARGET'])
-runImage(f65, 'qemux86', 'universe -c fetch', "poky", False, "yocto", False)
-f65.addStep(Trigger(schedulerNames=['eclipse-plugin'],
+makeCheckout(f1)
+runPreamble(f1, defaultenv['ABTARGET'])
+runImage(f1, 'qemux86', 'universe -c fetch', "poky", False, "yocto", False)
+f1.addStep(Trigger(schedulerNames=['eclipse-plugin'],
                             updateSourceStamp=False,
                             set_properties={'DEST': Property("DEST")},
                             waitForFinish=False))
-f65.addStep(Trigger(schedulerNames=['meta-intel-gpl'],
+f1.addStep(Trigger(schedulerNames=['meta-intel-gpl'],
                             updateSourceStamp=False,
                             set_properties={'DEST': Property("DEST")},
                             waitForFinish=False))
-f65.addStep(Trigger(schedulerNames=['build-appliance'],
+f1.addStep(Trigger(schedulerNames=['build-appliance'],
                             updateSourceStamp=False,
                             set_properties={'DEST': Property("DEST")},
                             waitForFinish=False))
-f65.addStep(Trigger(schedulerNames=['nightly-x86'],
+f1.addStep(Trigger(schedulerNames=['nightly-x86'],
                             updateSourceStamp=False,
                             set_properties={'DEST': Property("DEST")},
                             waitForFinish=False))
-f65.addStep(Trigger(schedulerNames=['nightly-x86-64'],
+f1.addStep(Trigger(schedulerNames=['nightly-x86-64'],
                             updateSourceStamp=False,
                             set_properties={'DEST': Property("DEST")},
                             waitForFinish=False))
-f65.addStep(Trigger(schedulerNames=['nightly-arm'],
+f1.addStep(Trigger(schedulerNames=['nightly-arm'],
                             updateSourceStamp=False,
                             set_properties={'DEST': Property("DEST")},
                             waitForFinish=False))
-f65.addStep(Trigger(schedulerNames=['nightly-ppc'],
+f1.addStep(Trigger(schedulerNames=['nightly-ppc'],
                             updateSourceStamp=False,
                             set_properties={'DEST': Property("DEST")},
                             waitForFinish=False))
-f65.addStep(Trigger(schedulerNames=['nightly-mips'],
+f1.addStep(Trigger(schedulerNames=['nightly-mips'],
                             updateSourceStamp=False,
                             set_properties={'DEST': Property("DEST")},
                             waitForFinish=False))
-f65.addStep(Trigger(schedulerNames=['nightly-x86-lsb'],
+f1.addStep(Trigger(schedulerNames=['nightly-x86-lsb'],
                             updateSourceStamp=False,
                             set_properties={'DEST': Property("DEST")},
                             waitForFinish=False))
-f65.addStep(Trigger(schedulerNames=['nightly-x86-64-lsb'],
+f1.addStep(Trigger(schedulerNames=['nightly-x86-64-lsb'],
                             updateSourceStamp=False,
                             set_properties={'DEST': Property("DEST")},
                             waitForFinish=False))
-f65.addStep(Trigger(schedulerNames=['nightly-arm-lsb'],
+f1.addStep(Trigger(schedulerNames=['nightly-arm-lsb'],
                             updateSourceStamp=False,
                             set_properties={'DEST': Property("DEST")},
                             waitForFinish=False))
-f65.addStep(Trigger(schedulerNames=['nightly-ppc-lsb'],
+f1.addStep(Trigger(schedulerNames=['nightly-ppc-lsb'],
                             updateSourceStamp=False,
                             set_properties={'DEST': Property("DEST")},
                             waitForFinish=False))
-f65.addStep(Trigger(schedulerNames=['nightly-mips-lsb'],
+f1.addStep(Trigger(schedulerNames=['nightly-mips-lsb'],
                             updateSourceStamp=False,
                             set_properties={'DEST': Property("DEST")},
                             waitForFinish=False))
-f65.addStep(Trigger(schedulerNames=['nightly-multilib'],
+f1.addStep(Trigger(schedulerNames=['nightly-multilib'],
                             updateSourceStamp=False,
                             set_properties={'DEST': Property("DEST")},
                             waitForFinish=False))
-f65.addStep(Trigger(schedulerNames=['nightly-tiny'],
+f1.addStep(Trigger(schedulerNames=['nightly-tiny'],
                             updateSourceStamp=False,
                             set_properties={'DEST': Property("DEST")},
                             waitForFinish=False))
-f65.addStep(Trigger(schedulerNames=['nightly-world'],
+f1.addStep(Trigger(schedulerNames=['nightly-world'],
                             updateSourceStamp=False,
                             set_properties={'DEST': Property("DEST")},
                             waitForFinish=False))
-f65.addStep(Trigger(schedulerNames=['nightly-non-gpl3'],
+f1.addStep(Trigger(schedulerNames=['nightly-non-gpl3'],
                             updateSourceStamp=False,
                             set_properties={'DEST': Property("DEST")},
                             waitForFinish=False))
-f65.addStep(YoctoBlocker(idlePolicy="block", timeout=62400, upstreamSteps=[
+f1.addStep(Trigger(schedulerNames=['p1022ds'],
+                            updateSourceStamp=False,
+                            set_properties={'DEST': Property("DEST")},
+                            waitForFinish=False))
+f1.addStep(YoctoBlocker(idlePolicy="block", timeout=62400, upstreamSteps=[
                                         ("nightly-arm", "nightly"),
                                         ("nightly-x86", "nightly"),
                                         ("nightly-x86-64", "nightly"),
@@ -1174,39 +1271,40 @@ f65.addStep(YoctoBlocker(idlePolicy="block", timeout=62400, upstreamSteps=[
                                         ("nightly-world", "nightly"),
                                         ("nightly-multilib", "nightly"),
                                         ("nightly-tiny", "nightly"),
-                                        ("nightly-non-gpl3", "nightly")]))
-runPostamble(f65)
-f65.addStep(ShellCommand, 
+                                        ("nightly-non-gpl3", "nightly"),
+                                        ("p1022ds", "nightly")]))
+runPostamble(f1)
+f1.addStep(ShellCommand, 
             description="Prepping for package-index creation by copying ipks back to main builddir", workdir="build/build/tmp/deploy",
             command=["sh", "-c", WithProperties("cp -R %s/ipk ipk", "DEST")])
-f65.addStep(ShellCommand,
+f1.addStep(ShellCommand,
             description="Prepping for package-index creation by copying rpms back to main builddir", workdir="build/build/tmp/deploy",
             command=["sh", "-c", WithProperties("cp -R %s/rpm rpm", "DEST")])
 defaultenv['SDKMACHINE'] = 'i686'
-runImage(f65, 'qemux86', 'package-index', "poky", False, "yocto", False)
+runImage(f1, 'qemux86', 'package-index', "poky", False, "yocto", False)
 defaultenv['SDKMACHINE'] = 'x86_64'
-runImage(f65, 'qemux86', 'package-index', "poky", False, "yocto", False)
-publishArtifacts(f65, "ipk", "build/build/tmp")
-publishArtifacts(f65, "rpm", "build/build/tmp")
-setSDKVERSION(f65, defaultenv)
+runImage(f1, 'qemux86', 'package-index', "poky", False, "yocto", False)
+publishArtifacts(f1, "ipk", "build/build/tmp")
+publishArtifacts(f1, "rpm", "build/build/tmp")
+setSDKVERSION(f1, defaultenv)
 if ADTREPO_GENERATE_INSTALLER == "True":
     defaultenv["ADTDEV"]="False"
-    runImage(f65, 'qemux86', 'adt-installer', "poky", False, "yocto", False)
-    publishArtifacts(f65, "adt_installer", "build/build/tmp")
+    runImage(f1, 'qemux86', 'adt-installer', "poky", False, "yocto", False)
+    publishArtifacts(f1, "adt_installer", "build/build/tmp")
 if ADTREPO_GENERATE_DEV_INSTALLER == "True":
     defaultenv["ADTDEV"]="True"
-    runImage(f65, 'qemux86', 'adt-installer', "poky", False, "yocto", False)
-    publishArtifacts(f65, "adt_installer-QA", "build/build/tmp")
+    runImage(f1, 'qemux86', 'adt-installer', "poky", False, "yocto", False)
+    publishArtifacts(f1, "adt_installer-QA", "build/build/tmp")
     defaultenv["ADTDEV"]="False"
 if ADTREPO_DEV_POPULATE == "True":
-    publishArtifacts(f65, "adtrepo-dev", "build/build/tmp")
-b65 = {'name': "nightly",
+    publishArtifacts(f1, "adtrepo-dev", "build/build/tmp")
+b1 = {'name': "nightly",
       'slavenames': ["builder1"],
       'builddir': "nightly",
-      'factory': f65
+      'factory': f1
       }
 
-yocto_builders.append(b65)
+yocto_builders.append(b1)
 yocto_sched.append(triggerable.Triggerable(name="eclipse-plugin", builderNames=["eclipse-plugin"]))
 yocto_sched.append(triggerable.Triggerable(name="build-appliance", builderNames=["build-appliance"]))
 yocto_sched.append(triggerable.Triggerable(name="meta-intel-gpl", builderNames=["meta-intel-gpl"]))
@@ -1224,6 +1322,7 @@ yocto_sched.append(triggerable.Triggerable(name="nightly-world", builderNames=["
 yocto_sched.append(triggerable.Triggerable(name="nightly-multilib", builderNames=["nightly-multilib"]))
 yocto_sched.append(triggerable.Triggerable(name="nightly-tiny", builderNames=["nightly-tiny"]))
 yocto_sched.append(triggerable.Triggerable(name="nightly-non-gpl3", builderNames=["nightly-non-gpl3"]))
+yocto_sched.append(triggerable.Triggerable(name="p1022ds", builderNames=["p1022ds"]))
 
 #####################################################################
 #
@@ -1350,6 +1449,137 @@ b61 = {'name': "eclipse-plugin",
       'factory': f61,
       }
 yocto_builders.append(b61)
+
+#####################################################################
+#
+# p1022ds buildout
+#
+#####################################################################
+f62 = factory.BuildFactory()
+defaultenv['DISTRO'] = 'poky'
+defaultenv['ABTARGET'] = 'p1022ds'
+defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
+defaultenv['REVISION'] = "HEAD"
+defaultenv['BTARGET'] = 'p1022ds'
+defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-fsl-ppc.git"
+defaultenv['BSP_BRANCH'] = "master"
+defaultenv['BSP_WORKDIR'] = "build/yocto/meta-fsl-ppc"
+defaultenv['BSP_REV'] = "HEAD"
+f62.addStep(ShellCommand(doStepIf=getCleanSS,
+            description="Prepping for nightly creation by removing SSTATE",
+            timeout=62400,
+            command=["rm", "-rf", defaultenv['LSB_SSTATE_DIR'], defaultenv['SSTATE_DIR']]))
+makeCheckout(f62)
+runPreamble(f62, defaultenv['ABTARGET'])
+runBSPLayerPreamble(f62, defaultenv['ABTARGET'], "fsl")
+buildBSPLayer(f62, "poky", defaultenv['ABTARGET'], "fsl")
+f62.addStep(ShellCommand, description="Moving old TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
+buildBSPLayer(f62, "poky-lsb", defaultenv['ABTARGET'], "fsl")
+runPostamble(f62)
+f62.addStep(NoOp(name="nightly"))
+b62 = {'name': "p1022ds",
+        'slavenames': ["builder1"],
+        'builddir': "p1022ds",
+        'factory': f62}
+yocto_builders.append(b62)
+
+#####################################################################
+#
+# vanilla OE-Core buildout
+#
+#####################################################################
+f63 = factory.BuildFactory()
+defaultenv['ABTARGET'] = 'oecore'
+defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
+defaultenv['REVISION'] = "HEAD"
+defaultenv['BTARGET'] = 'oecore'
+defaultenv['DISTRO'] = ''
+defaultenv['MIGPL']="False"
+defaultenv['MACHINE'] = "qemuarm"
+defaultenv['SDKMACHINE'] = 'i686'
+f63.addStep(ShellCommand(doStepIf=getCleanSS,
+            description="Prepping for nightly creation by removing SSTATE",
+            timeout=62400,
+            command=["rm", "-rf", defaultenv['LSB_SSTATE_DIR'], defaultenv['SSTATE_DIR']]))
+makeCheckout(f63)
+runPreamble(f63, "oe-core")
+f63.addStep(ShellCommand, description=["Setting up build"],
+                command=["yocto-autobuild-preamble"],
+                workdir="build",
+                env=copy.copy(defaultenv),
+                timeout=14400)
+createAutoConf(f63, defaultenv, btarget="qemuarm", distro="")
+createBBLayersConf(f63, defaultenv, btarget="qemuarm", bsplayer=False, provider="intel", buildprovider="oe")
+f63.addStep(ShellCommand, description=["Building vanilla oe-core core-image-sato"],
+                command=["yocto-autobuild", "core-image-sato", "-k"],
+                timeout=14400)
+publishArtifacts(f63, "qemuarm", "build/build/tmp-eglibc")
+runImage(f63, 'qemux86-64', 'meta-toolchain-gmae', defaultenv['DISTRO'], False, "oe-core", "False")
+defaultenv['SDKMACHINE'] = 'x86_64'
+f63.addStep(ShellCommand, description="Setting SDKMACHINE=x86_64",
+            command="echo 'Setting SDKMACHINE=x86_64'", timeout=10)
+runImage(f63, 'qemux86-64', 'meta-toolchain-gmae', defaultenv['DISTRO'], False, "oe-core", 'False')
+publishArtifacts(f63, "oe-toolchain","build/build/tmp-eglibc")
+publishArtifacts(f63, "ipk", "build/build/tmp-eglibc")
+runPostamble(f63)
+f63.addStep(NoOp(name="nightly"))
+b63 = {'name': "oecore",
+        'slavenames': ["builder1"],
+        'builddir': "oecore",
+        'factory': f63}
+yocto_builders.append(b63)
+
+#####################################################################
+#
+# x32 buildout
+#
+#####################################################################
+f64 = factory.BuildFactory()
+defaultenv['ABTARGET'] = 'nightly-x32'
+defaultenv['ENABLE_SWABBER'] = 'false'
+defaultenv['MIGPL']="False"
+defaultenv['REVISION'] = "HEAD"
+defaultenv['BTARGET'] = 'qemux86-64'
+defaultenv['DISTRO'] = 'poky'
+defaultenv['MIGPL']="False"
+makeCheckout(f64)
+runPreamble(f64, defaultenv['ABTARGET'])
+defaultenv['SDKMACHINE'] = 'i686'
+f64.addStep(ShellCommand, description="Setting SDKMACHINE=i686",
+            command="echo 'Setting SDKMACHINE=i686'", timeout=10)
+f64.addStep(ShellCommand(doStepIf=getCleanSS,
+            description="Prepping for nightly creation by removing SSTATE",
+            timeout=62400,
+            command=["rm", "-rf", defaultenv['LSB_SSTATE_DIR'], defaultenv['SSTATE_DIR']]))
+makeCheckout(f64)
+f64.addStep(ShellCommand, description=["Setting up build"],
+                command=["yocto-autobuild-preamble"],
+                workdir="build",
+                env=copy.copy(defaultenv),
+                timeout=14400)
+runPreamble(f64, "qemux86-64")
+defaultenv['MACHINE'] = "qemux86"
+createAutoConf(f64, defaultenv, btarget="qemux86-64", distro="poky")
+createBBLayersConf(f64, defaultenv, btarget="qemux86-64", bsplayer=False, provider="intel", buildprovider="oe")
+runImage(f64, 'qemux86-64', 'core-image-minimal', defaultenv['DISTRO'], False, "yocto", defaultenv['BUILD_HISTORY_COLLECT'])
+runImage(f64, 'qemux86-64', 'core-image-sato', defaultenv['DISTRO'], False, "yocto", defaultenv['BUILD_HISTORY_COLLECT'])
+#runImage(f64, 'qemux86-64', 'meta-toolchain-gmae', defaultenv['DISTRO'], False, "yocto", defaultenv['BUILD_HISTORY_COLLECT'])
+#defaultenv['SDKMACHINE'] = 'x86_64'
+#f64.addStep(ShellCommand, description="Setting SDKMACHINE=x86_64",
+#            command="echo 'Setting SDKMACHINE=x86_64'", timeout=10)
+#runImage(f64, 'qemux86-64', 'meta-toolchain-gmae', defaultenv['DISTRO'], False, "yocto", defaultenv['BUILD_HISTORY_COLLECT'])
+#publishArtifacts(f64, "toolchain","build/build/tmp")
+publishArtifacts(f64, "ipk", "build/build/tmp")
+runPostamble(f64)
+f64.addStep(NoOp(name="nightly"))
+b64 = {'name': "nightly-x32",
+      'slavenames': ["builder1"],
+      'builddir': "nightly-x32",
+      'factory': f64,
+      }
+yocto_builders.append(b64)
 
 ###############
 #
@@ -2464,39 +2694,4 @@ b62 = {'name': "eclipse-plugin-helios",
       'factory': f62,
       }
 #yocto_builders.append(b62)
-
-
-#####################################################################
-#
-# p1022ds buildout
-#
-#####################################################################
-f340 = factory.BuildFactory()
-defaultenv['DISTRO'] = 'poky'
-defaultenv['ABTARGET'] = 'p1022ds'
-defaultenv['ENABLE_SWABBER'] = 'false'
-defaultenv['MIGPL']="False"
-defaultenv['REVISION'] = "HEAD"
-defaultenv['BTARGET'] = 'p1022ds'
-defaultenv['BSP_REPO'] = "git://git.yoctoproject.org/meta-fsl-ppc.git"
-defaultenv['BSP_BRANCH'] = "master"
-defaultenv['BSP_WORKDIR'] = "build/yocto/meta-fsl-ppc"
-defaultenv['BSP_REV'] = "HEAD"
-f340.addStep(ShellCommand(doStepIf=getCleanSS,
-            description="Prepping for nightly creation by removing SSTATE",
-            timeout=62400,
-            command=["rm", "-rf", defaultenv['LSB_SSTATE_DIR'], defaultenv['SSTATE_DIR']]))
-makeCheckout(f340)
-runPreamble(f340, defaultenv['ABTARGET'])
-runBSPLayerPreamble(f340, defaultenv['ABTARGET'], "fsl")
-buildBSPLayer(f340, "poky", defaultenv['ABTARGET'], "fsl")
-f340.addStep(ShellCommand, description="Moving old TMPDIR", workdir="build/build", command="mv tmp non-lsbtmp; mkdir tmp")
-buildBSPLayer(f340, "poky-lsb", defaultenv['ABTARGET'], "fsl")
-runPostamble(f340)
-b340 = {'name': "p1022ds",
-        'slavenames': ["builder1"],
-        'builddir': "p1022ds",
-        'factory': f340}
-yocto_builders.append(b340)
-
 
