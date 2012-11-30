@@ -351,6 +351,9 @@ def createAutoConf(factory, defaultenv, btarget=None, distro=None, buildhistory=
         fout = fout + 'DL_DIR ?= "${TOPDIR}/downloads"\n'
         fout = fout + 'INHERIT += "own-mirrors"\n'
         fout = fout + 'SOURCE_MIRROR_URL = "file:///' + defaultenv['DL_DIR']+'"\n'
+        factory.addStep(ShellCommand(doStepIf=getBuildAppSrcRev, description="Modifying Build Appliance SRCREV",
+                command=["sh", "-c", WithProperties("echo 'SRCREV_pn-build-appliance-image = \"%s\"\n' > " + AUTOCONF, "BASRCREV")],
+                timeout=60))
     else:
         fout = fout + 'DL_DIR = "' + defaultenv['DL_DIR']+'"\n'
         fout = fout + 'PREMIRRORS = ""\n'
@@ -752,6 +755,20 @@ def getCleanSS(step):
         cleansstate = False
     if cleansstate=="True" and not step.build.getProperties().has_key("donecleansstate"):
         step.setProperty("donecleansstate", True)
+        return True
+    else:
+        return False
+
+def getBuildAppSrcRev(step):
+    try:
+        buildappsrcrev = step.getProperty("buildappsrcrev")
+    except:
+        return False
+    if buildappsrcrev == "AUTOREV":
+        step.setProperty("BASRCREV", "${AUTOREV}")
+        return True
+    elif buildappsrcrev != "DEFAULT":
+        step.setProperty("BASRCREV", buildappsrcrev)
         return True
     else:
         return False
@@ -1195,7 +1212,7 @@ f1.addStep(Trigger(schedulerNames=['meta-intel-gpl'],
                             waitForFinish=False))
 f1.addStep(Trigger(schedulerNames=['build-appliance'],
                             updateSourceStamp=False,
-                            set_properties={'DEST': Property("DEST")},
+                            set_properties={'DEST': Property("DEST"), 'buildappsrcrev' : Property("buildappsrcrev")},
                             waitForFinish=False))
 f1.addStep(Trigger(schedulerNames=['nightly-x86'],
                             updateSourceStamp=False,
