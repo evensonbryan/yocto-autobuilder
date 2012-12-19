@@ -1,0 +1,170 @@
+Setting up a Yocto Autobuilder Build Cluster
+============================================
+
+Most autobuilder setups are individual to the circumstances of the
+user. This document outlines some of the configuration options/files, 
+autobuilder setup gotchas and general autobuilder best practices.
+
+Setup
+============
+
+1. Setting the Yocto autobuilder up to run headless sanity tests
+
+    If you plan on using the yocto autobuilder to run sanity testing, 
+    you will need to:
+
+    1. Install tight-vnc client and server.
+
+    2. Set up tap devs by running poky/scripts/runqemu-setup-tapdev
+
+    3. Add "xterm*vt100*geometry: 80x50+10+10" to .Xdefaults
+
+    4. Setup and start vnc session as the autobuilder user.
+
+    5. You MUST manually connect to the vnc session at least once prior to 
+       running a qemu sanity test (Something is getting set during the initial 
+       connection that I haven't figured out yet. Manually connecting seems to 
+       set up the session correctly.)
+
+2. Adding additional builders
+
+    The production yocto autobuilder uses a cluster of build slaves, all sharing
+    the same SSTATE_DIR and DL_DIR via an NFS4 mounted NAS. The main nightly 
+    trigger prepopulates the DL_DIR, allowing the slaves to not have to deal 
+    with a lot of downloading.
+
+    In theory you could also run your build slaves with NO_NETWORK to enforce a 
+    single point of populating DL_DIR.
+
+    Running multiple builders is fairly simple, but does require some setup.
+
+    1. Ensure the autobuilder.conf for each build slave is appropriate. As
+       certain variables are set within this file that are local to each builder
+       you should read the Settings section below to become more familiar with
+       each variable.
+    2. Within yocto-master/master.cfg make the following changes substituing 
+       <PASS> for your debug password and  max_builds for the number of builds 
+       you wish to run on each builder. Your main builder that will run the 
+       nightly trigger buildset should have at least 2 builders running.
+
+
+c['slaves'] = [BuildSlave("builder1", "<PASS>", max_builds=3),
+               BuildSlave("builder2", "<PASS>", max_builds=3),
+               BuildSlave("builder3", "<PASS>", max_builds=3),
+               BuildSlave("builder4", "<PASS>", max_builds=3)]
+
+    3. For each buildslave change yocto-slave/buildbot.tac to point to the 
+       correct build master and port. The default setup points to local host.
+
+buildmaster_host = 'builder1.myproject.org'
+port = 9989
+slavename = 'builder2'
+
+3. Setting up build history.
+
+    Build History is used to track changes to packages and images. By default
+    the autobuilder does not collect build history. The production autobuilder
+    does have this functionality enabled. 
+
+    Setting up build history requires the following steps:
+
+    1. Create an empty git repo. Make a single commit to it and the create and
+       push branches for each of the nightly core architectures (ie. mips, ppc,
+       x86...)
+    2. Find a central location to create a clone for this. This works best if
+       you have a set up similar to the production autobuilder (NAS with many
+       builders)
+    3. Run the following:
+
+# This is an example of how to set up a local build history checkout. Paths
+# obviously are situation dependant.
+mkdir /nas/buildhistory
+cd /nas/buildhistory
+git clone ssh://git@git.myproject.org/buildhistory
+git clone ssh://git@git.myproject.org/buildhistory nightly-arm
+git clone ssh://git@git.myproject.org/buildhistory nightly-x86
+git clone ssh://git@git.myproject.org/buildhistory nightly-x86-64
+git clone ssh://git@git.myproject.org/buildhistory nightly-ppc
+git clone ssh://git@git.myproject.org/buildhistory nightly-mips
+for x in `ls|grep nightly` do cd $x; git checkout $x; cd /nas/buildhistory; done
+
+    4. Within the autobuilder.conf of EACH slave change the following:
+
+BUILD_HISTORY_COLLECT = True
+BUILD_HISTORY_DIR = "/nas/buildhistory"
+BUILD_HISTORY_REPO = "ssh://git@git.myproject.org/buildhistory"
+
+
+
+Settings
+============
+
+File: conf/autobuilder.conf settings
+
+PublishSettings
+---------------
+
+PUBLISH_BUILDS:
+Determins if build artifacts are copied into a release directory. Generally not
+used for developer autobuilders, it's quite useful for production autobuilders.
+
+PUBLISH_SOURCE_MIRROR:
+If True, use BB_GENERATE_MIRROR_TARBALLS = "1" in auto.conf
+
+PUBLISH_SSTATE:
+If True, use to sync sstate to sstate mirror
+
+SSTATE_PUBLISH_DIR:
+Directory LSB_SSTATE_DIR and SOURCE_SSTATE_DIR are copied to if 
+PUBLISH_SSTATE = True
+
+SOURCE_PUBLISH_DIR:
+Directory sources are copied to if PUBLISH_SOURCE_MIRROR = True
+
+BUILD_PUBLISH_DIR:
+Directory build artifacts are copied to if PUBLISH_BUILDS = True
+
+BUILD_HISTORY_COLLECT:
+Collects and pushes buildhistory artifacts if True. Defaults to False
+
+BuildSettings
+-------------
+
+SOURCE_DL_DIR:
+autobuilder slave's DL_DIR
+
+SOURCE_SSTATE_DIR: 
+SState directory for non-lsb builds
+
+LSB_SSTATE_DIR:
+SState directory for lsb builds. This should usually be the same as 
+SOURCE_SSTATE_DIR, however is left in for historical reasons.
+
+BUILD_HISTORY_DIR:
+Local checkout of the build history repository
+
+BUILD_HISTORY_REPO:
+Main repository to store build history statistics
+
+IASettings
+-------------
+
+EMGD_DRIVER_DIR: 
+Older versions of the crownbay meta-intel BSP required a third party binary
+driver to have been predownloaded. This points to the location of the EMGD 
+driver binary.
+
+Files used for Yocto-Autobuilder Configuration
+----------------------------------------------
+Name: conf/autobuilder.conf 
+Purpose:
+This file is used to set autobuilder wide parameters, like where various build
+artifacts are published to, DL_DIR, SSTATE_DIR or if build artifacts should be
+published (needed for production autobuilders, not needed for desktop builders)
+
+Name: yocto-master/yoctoABConfig.py
+Purpose:
+This is the main yocto autobuilder config. Usually, there is no reason most end
+users should modify this.
+
+

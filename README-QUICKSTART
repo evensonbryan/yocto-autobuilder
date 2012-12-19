@@ -1,0 +1,6 @@
+Setting up yocto-autobuilder in four easy steps:
+------------------------------------------------
+git clone git://git.yoctoproject.org/yocto-autobuilder
+cd yocto-autobuilder
+. ./yocto-setup-autobuilder
+yocto-start-autobuilder both
