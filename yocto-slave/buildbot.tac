@@ -29,7 +29,7 @@ except ImportError:
 buildmaster_host = 'localhost'
 port = 9989
 slavename = 'builder1'
-passwd = 'Hkp1WzIY9'
+passwd = 'hQGlqMPDq'
 keepalive = 600
 usepty = 0
 umask = 022
