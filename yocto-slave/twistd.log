@@ -11841,3 +11841,97 @@
 2012-12-26 15:12:11-0800 [-] command finished with signal None, exit code 0, elapsedTime: 0.001978
 2012-12-26 15:12:11-0800 [-] SlaveBuilder.commandComplete <buildslave.commands.shell.SlaveShellCommand instance at 0x2b29ea8>
 2012-12-26 15:21:57-0800 [-] sending app-level keepalive
+2013-01-02 09:42:05-0800 [-] Log opened.
+2013-01-02 09:42:05-0800 [-] twistd 12.2.0 (/usr/bin/python 2.7.2) starting up.
+2013-01-02 09:42:05-0800 [-] reactor class: twisted.internet.epollreactor.EPollReactor.
+2013-01-02 09:42:05-0800 [-] Starting BuildSlave -- version: 0.8.7p1
+2013-01-02 09:42:05-0800 [-] recording hostname in twistd.hostname
+2013-01-02 09:42:05-0800 [-] Starting factory <buildslave.bot.BotFactory instance at 0x33847e8>
+2013-01-02 09:42:05-0800 [-] Connecting to localhost:9989
+2013-01-02 09:42:05-0800 [Uninitialized] Connection to localhost:9989 failed: Connection Refused
+2013-01-02 09:42:05-0800 [Uninitialized] <twisted.internet.tcp.Connector instance at 0x3384950> will retry in 2 seconds
+2013-01-02 09:42:05-0800 [Uninitialized] Stopping factory <buildslave.bot.BotFactory instance at 0x33847e8>
+2013-01-02 09:42:07-0800 [-] Starting factory <buildslave.bot.BotFactory instance at 0x33847e8>
+2013-01-02 09:42:07-0800 [-] Connecting to localhost:9989
+2013-01-02 09:42:07-0800 [Uninitialized] Connection to localhost:9989 failed: Connection Refused
+2013-01-02 09:42:07-0800 [Uninitialized] <twisted.internet.tcp.Connector instance at 0x3384950> will retry in 5 seconds
+2013-01-02 09:42:07-0800 [Uninitialized] Stopping factory <buildslave.bot.BotFactory instance at 0x33847e8>
+2013-01-02 09:42:13-0800 [-] Starting factory <buildslave.bot.BotFactory instance at 0x33847e8>
+2013-01-02 09:42:13-0800 [-] Connecting to localhost:9989
+2013-01-02 09:42:13-0800 [Uninitialized] Connection to localhost:9989 failed: Connection Refused
+2013-01-02 09:42:13-0800 [Uninitialized] <twisted.internet.tcp.Connector instance at 0x3384950> will retry in 16 seconds
+2013-01-02 09:42:13-0800 [Uninitialized] Stopping factory <buildslave.bot.BotFactory instance at 0x33847e8>
+2013-01-02 09:42:29-0800 [-] Starting factory <buildslave.bot.BotFactory instance at 0x33847e8>
+2013-01-02 09:42:29-0800 [-] Connecting to localhost:9989
+2013-01-02 09:42:29-0800 [Uninitialized] Connection to localhost:9989 failed: Connection Refused
+2013-01-02 09:42:29-0800 [Uninitialized] <twisted.internet.tcp.Connector instance at 0x3384950> will retry in 44 seconds
+2013-01-02 09:42:29-0800 [Uninitialized] Stopping factory <buildslave.bot.BotFactory instance at 0x33847e8>
+2013-01-02 09:43:14-0800 [-] Starting factory <buildslave.bot.BotFactory instance at 0x33847e8>
+2013-01-02 09:43:14-0800 [-] Connecting to localhost:9989
+2013-01-02 09:43:14-0800 [Uninitialized] Connection to localhost:9989 failed: Connection Refused
+2013-01-02 09:43:14-0800 [Uninitialized] <twisted.internet.tcp.Connector instance at 0x3384950> will retry in 116 seconds
+2013-01-02 09:43:14-0800 [Uninitialized] Stopping factory <buildslave.bot.BotFactory instance at 0x33847e8>
+2013-01-02 09:44:18-0800 [-] Received SIGTERM, shutting down.
+2013-01-02 09:44:18-0800 [-] Main loop terminated.
+2013-01-02 09:44:18-0800 [-] Server Shut Down.
+2013-01-02 09:44:24-0800 [-] Log opened.
+2013-01-02 09:44:24-0800 [-] twistd 12.2.0 (/usr/bin/python 2.7.2) starting up.
+2013-01-02 09:44:24-0800 [-] reactor class: twisted.internet.epollreactor.EPollReactor.
+2013-01-02 09:44:24-0800 [-] Starting BuildSlave -- version: 0.8.7p1
+2013-01-02 09:44:24-0800 [-] recording hostname in twistd.hostname
+2013-01-02 09:44:24-0800 [-] Starting factory <buildslave.bot.BotFactory instance at 0x153e050>
+2013-01-02 09:44:24-0800 [-] Connecting to localhost:9989
+2013-01-02 09:44:24-0800 [Uninitialized] Connection to localhost:9989 failed: Connection Refused
+2013-01-02 09:44:24-0800 [Uninitialized] <twisted.internet.tcp.Connector instance at 0x153e170> will retry in 2 seconds
+2013-01-02 09:44:24-0800 [Uninitialized] Stopping factory <buildslave.bot.BotFactory instance at 0x153e050>
+2013-01-02 09:44:27-0800 [-] Starting factory <buildslave.bot.BotFactory instance at 0x153e050>
+2013-01-02 09:44:27-0800 [-] Connecting to localhost:9989
+2013-01-02 09:44:27-0800 [Broker,client] message from master: attached
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'meta-intel-gpl' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'nightly-world' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'nightly-multilib' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'nightly-x86-64-lsb' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'nightly-tiny' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'oecore' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'romley' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'fri2-noemgd' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'nightly-meta-intel' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'jasperforest' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'sys940x-noemgd' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'nightly-x32' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'crownbay' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'crownbay-noemgd' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'sugarbay' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'fri2' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'eclipse-plugin' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'p1022ds' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'core-swabber-test' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'n450' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'nightly-x86-64' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'nightly-arm-lsb' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'cedartrail' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'nightly-arm' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'nightly-non-gpl3' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'nightly-mips' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'nightly-mips-lsb' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'emenlow' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'chiefriver' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'nightly-x86-lsb' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'nightly-ppc-lsb' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'sys940x' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] I have a leftover directory 'nightly-ppc' that is not being used by the buildmaster: you can delete it now
+2013-01-02 09:44:27-0800 [Broker,client] SlaveBuilder.remote_print(nightly): message from master: attached
+2013-01-02 09:44:27-0800 [Broker,client] SlaveBuilder.remote_print(build-appliance): message from master: attached
+2013-01-02 09:44:27-0800 [Broker,client] SlaveBuilder.remote_print(nightly-x86): message from master: attached
+2013-01-02 09:44:27-0800 [Broker,client] Connected to localhost:9989; slave is ready
+2013-01-02 09:44:27-0800 [Broker,client] sending application-level keepalives every 600 seconds
+2013-01-02 09:54:27-0800 [-] sending app-level keepalive
+2013-01-02 10:04:27-0800 [-] sending app-level keepalive
+2013-01-02 10:14:27-0800 [-] sending app-level keepalive
+2013-01-02 10:24:27-0800 [-] sending app-level keepalive
+2013-01-02 10:34:27-0800 [-] sending app-level keepalive
+2013-01-02 10:44:27-0800 [Broker,client] message from master: Received keepalive from master
+2013-01-02 10:44:27-0800 [-] sending app-level keepalive
+2013-01-02 10:54:27-0800 [-] sending app-level keepalive
+2013-01-02 11:04:27-0800 [-] sending app-level keepalive
+2013-01-02 11:14:27-0800 [-] sending app-level keepalive
