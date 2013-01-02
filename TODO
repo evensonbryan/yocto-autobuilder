@@ -1,0 +1,7 @@
+- Finish stubbing out buildsteps
+- Figure out SQLAlchemy deps
+- Create a full working buildset
+- Figure out the trigger mechanism
+- Figure out the templeting mech for layers
+- Document base buildstep classes
+- Test test test test
