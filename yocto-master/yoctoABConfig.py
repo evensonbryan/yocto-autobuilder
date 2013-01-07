@@ -1432,21 +1432,20 @@ defaultenv['MIGPL']="False"
 defaultenv['REVISION'] = "HEAD"
 runPreamble(f61, defaultenv['ABTARGET'])
 f61.addStep(ShellCommand, description="cleaning up eclipse build dir",
-			command="rm -rf *",
-			workdir=WithProperties("%s", "workdir"))
-f61.addStep(ShellCommand, description="Cloning eclipse-poky git repo",
-            command="yocto-eclipse-plugin-clone-repo", timeout=300)
-f61.addStep(ShellCommand, description="Checking out Eclipse Master Branch",
-            workdir="build/eclipse-plugin",
-            command="git checkout master",
-            timeout=600)
-f61.addStep(ShellCommand, description="Building eclipse plugin",
-            workdir="build/eclipse-plugin/scripts",
-            command="./setup.sh",
+            command="rm -rf *",
+            workdir=WithProperties("%s", "workdir"))
+f61.addStep(ShellCommand(doStepIf=getRepo,
+            description="Getting the requested git repo",
+            command='echo "Getting the requested git repo"'))
+f61.addStep(ShellCommand(workdir="build", command=["git", "clone",  "git://git.yoctoproject.org/eclipse-poky.git"], timeout=1000))
+f61.addStep(ShellCommand(doStepIf=getTag, workdir="build/eclipse-poky", command=["git", "checkout",  WithProperties("%s", "otherbranch")], timeout=1000))
+f61.addStep(ShellCommand, description="Setting up eclipse build",
+            workdir="build/eclipse-poky/scripts",
+            command=["sh", "-c", "./setup.sh"],
             timeout=6000)
 f61.addStep(ShellCommand, description="Building eclipse plugin",
-            workdir="build/eclipse-plugin/scripts",
-            command="ECLIPSE_HOME=/srv/home/pokybuild/yocto-autobuilder/yocto-slave/eclipse-plugin/build/eclipse-plugin/scripts/eclipse ./build.sh master rc1",
+            workdir="build/eclipse-poky/scripts",
+            command=["sh", "-c", WithProperties("ECLIPSE_HOME=%s/eclipse-plugin/build/eclipse-poky/scripts/eclipse ./build.sh %s development", "SLAVEBASEDIR", "otherbranch")],
             timeout=6000)
 if PUBLISH_BUILDS == "True":
     f61.addStep(ShellCommand(
@@ -1456,7 +1455,7 @@ if PUBLISH_BUILDS == "True":
                 timeout=14400))
     f61.addStep(ShellCommand, description=["Copying eclipse-plugin dir"],
                 command=["sh", "-c", WithProperties("cp *.zip %s/eclipse-plugin/juno", "DEST")],
-                workdir="build/eclipse-plugin/scripts",
+                workdir="build/eclipse-poky/scripts",
                 env=copy.copy(defaultenv),
                 timeout=14400)
 f61.addStep(NoOp(name="nightly"))
