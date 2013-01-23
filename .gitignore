@@ -14,3 +14,15 @@
 .setupdone
 .cfg
 
+TODO
+yocto-master/http.log
+yocto-master/master.cfg
+yocto-master/state.sqlite
+yocto-master/twistd.log.1
+yocto-slave/build-appliance/build(newcommits)
+yocto-slave/buildbot.tac
+yocto-slave/nightly-x86/.buildbot-sourcedata-YnVpbGQ=
+yocto-slave/nightly/build(newcommits)
+yocto-slave/twistd.hostname
+yocto-slave/twistd.log
+yocto-slave/twistd.pid
