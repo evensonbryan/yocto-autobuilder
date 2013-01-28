@@ -115,7 +115,7 @@ if [ -n "${config_check:+x}" ]; then
     echo " Ready to start the yocto autobuilder."
     echo ""
     echo " The yocto-autobuilder runs buildbot 0.8.7p1 with some modifications to "
-    echo " layout.py and buildbot/status/master.py. 
+    echo " layout.py and buildbot/status/master.py. "
     echo ""
     echo "#########################################################################"
     buildbot upgrade-master ${PWD}/yocto-master
