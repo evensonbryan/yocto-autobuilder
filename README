@@ -162,9 +162,10 @@ This file is used to set autobuilder wide parameters, like where various build
 artifacts are published to, DL_DIR, SSTATE_DIR or if build artifacts should be
 published (needed for production autobuilders, not needed for desktop builders)
 
-Name: yocto-master/yoctoABConfig.py
+
+Name: conf/yoctoAB.conf 
 Purpose:
-This is the main yocto autobuilder config. Usually, there is no reason most end
-users should modify this.
+This is the main yocto autobuilder config. Documentation for this and associated
+format is in README_CONFIG
 
 
