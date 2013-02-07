@@ -12,8 +12,16 @@ TODO
 ------------
 - buildhistory is not functional
 - still missing some needed build targets
+    - oe-core
+    - fsl
+    - p1022ds
+    - bunch of meta-intel
+    - 
 - minor UI cleanup for toggling of triggered layers
 - bbpriority needs to work
+- verify buildappsrcrev
+- deploy stuff
+- killing triggers. this has been a long standing issue. look into
 
 Setup
 ------------
