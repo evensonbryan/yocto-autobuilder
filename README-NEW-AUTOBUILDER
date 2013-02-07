@@ -1,0 +1,152 @@
+Introduction
+------------
+Prior versions of the yocto-autobuilder required an extensive knowledge of 
+buildbot as well as basic python. Over the years, as more targets were added
+the main configuation file had become hard to maintain, harder to read and, 
+frankly, was not utilizing the power of buildbot. This document will explain
+some of the rational behind the refactor, introduce end users to the new
+configuration language, introduce the concept of customized buildsteps and
+give some basic instruction on how to modify an autobuilder setup.
+
+TODO
+------------
+- buildhistory is not functional
+- still missing some needed build targets
+- minor UI cleanup for toggling of triggered layers
+- bbpriority needs to work
+
+Setup
+------------
+Nothing here has changed much. 
+
+git clone git://git.yoctoproject.org/yocto-autobuilder
+cd yocto-autobuilder
+git checkout eflanagan/yocto-autobuilder-refactor
+. ./yocto-setup-autobuilder
+yocto-start-autobuilder both
+
+Configuration
+-------------
+
+In the bad old days, the yocto-autobuilder configuration was stored in a single
+file. This file contained both build target definitions as well as helper code/
+custom buildsteps. This was obviously a "bad thing". We've now removed all
+build target configuration out into the config/* directory
+
+Files
+-----
+There are two needed files in this directory. One file, autobuilder.conf, is a
+global definition file which sets various globals that slaves and master need
+to know about. This hasn't really changed from prior versions.
+
+One new file is yoctoAB.conf. This is the only required file needed for build 
+target definitions. However, as it would be a bad practice to have all build 
+targets within a single file, you may define build targets in other *.conf files.
+As long as those conf files live within the config directory, the 
+yocto-autobuilder will automatically load them. This allows us to keep things 
+nice and neat.
+
+yoctoAB.conf:
+-------------
+The main BuildSets section required for the configuration contains a single 
+property:
+
+[BuildSets]
+order: ['nightly', 'nightly-x86']
+
+The order property tells buildbot what order you wish to display build targets
+in on the waterfall page. This can not be used with vanilla buildbot as there is 
+a small patch required to utilize this functionality.
+
+buildset configuration
+-------------
+Each buildset must start with a section name followed by at three to four 
+properties:
+
+builders: A string or list of builders used to build the buildset
+
+repos: A list of dicts. Each item will contain a dict entry:
+
+        'name_of_repo': 
+                    {'repourl':'git://path.to/git_repo', 
+                     'bbpriority':'1', 
+                     'branch':'master'}}
+
+NOTE: bbpriority is currently not used
+
+props: A list of dicts. This is used when you need to add properties to a 
+       builder. An example of this would be build-appliance which needs to have
+       a buildappsrcrev property passed so it knows which version from the poky
+       repo to pull. prop_type is basically buildbot scheduler properties with
+       the args sent as dict pairs. See: 
+       http://buildbot.net/buildbot/docs/0.8.6/manual/cfg-schedulers.html#forcesched-parameters
+
+steps: A list of dicts. These steps can be either custom buildsteps or basic 
+       buildbot buildsteps with args passed as dict pairs. Custom buildsteps
+       that we utilize are in lib/python2.7/site-packages/autobuilder/buildsteps
+       
+Example:
+
+[nightly-x86]
+builders: 'builder1'
+repos: [{'poky': 
+            {'repourl':'git://git.yoctoproject.org/poky', 
+             'bbpriority':'1', 
+             'branch':'master'}}, 
+        {'meta-qt3': 
+            {'repourl':'git://git.yoctoproject.org/meta-qt3', 
+             'bbpriority':'2', 
+             'branch':'master'}}] 
+steps: [{'SetDest':{}}, 
+        {'CheckOutLayers': {}}, 
+        {'RunPreamble': {}}, 
+        {'CreateAutoConf': {'machine': 'qemux86', 'SDKMACHINE' : 'i686', 
+                            'distro': 'poky'}},
+        {'CreateBBLayersConf': {'buildprovider' : 'yocto'}},
+        {'BuildImages': {'images': 'core-image-sato core-image-sato-dev'}},
+        {'RunSanityTests': {'images': 'core-image-minimal core-image-sato'}},
+        {'PublishArtifacts': {'artifacts': ['qemux86', 'atom-pc']}}]
+
+Adding Buildsteps
+-------------
+I've included the basic buildsteps required to do general building as well as an
+example buildstep called HelloWorld.py. 
+
+from buildbot.steps.shell import ShellCommand
+
+class HelloWorld(ShellCommand):
+    haltOnFailure = True 
+    flunkOnFailure = True 
+    name = "Hello World" 
+    def __init__(self, factory, argdict=None, **kwargs):
+        self.firstname=""
+        self.lastname=""
+        self.factory = factory
+        for k, v in argdict.iteritems():
+            if k=="name":
+                self.firstname=v
+            elif k=="lastname":
+                self.lastname=v
+            else:
+                setattr(self, k, v)
+        self.description = "Hello World"
+        self.command = "echo 'Hello World " + self.firstname + " " + self.lastname + "'"
+        ShellCommand.__init__(self, **kwargs)
+
+    def describe(self, done=False):
+        description = ShellCommand.describe(self,done)
+        return description
+
+We see that this is an inherited class (from ShellCommand) that overrides the 
+__init__ and describe methods of ShellCommand. All custom buildsteps MUST override
+__init__ of the inherited class, adding the argdict and kwargs properties to the
+class. This allows us to pass arguments specific to the custom buildstep in via
+an argument dictionary while allowing us to pass arguments in that will get passed
+up to the inherited class as a keyworded, variable length argument list.
+
+We do this so that adding buildsteps is essentially drag and drop. By adding a 
+custom buildstep to lib/python2.7/site-packages/autobuilder/buildsteps you can 
+just reference it within your config file without making any changes to the core
+Autobuilder codebase.
+
+
