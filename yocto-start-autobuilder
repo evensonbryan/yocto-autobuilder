@@ -49,7 +49,7 @@ if os.path.isfile(os.path.join(AB_BASE, ".setupdone")):
     from ConfigParser import SafeConfigParser
  
     parser = SafeConfigParser()
-    parser.read('conf/autobuilder.conf')
+    parser.read('config/autobuilder.conf')
     print
     print "Reading " + os.path.join(AB_BASE, "conf/autobuilder.conf")
     print 
