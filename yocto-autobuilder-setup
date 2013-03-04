@@ -51,7 +51,7 @@ export ADTREPO_DEV_URL="http://adtrepo-dev.yoctoproject.org/"
 export ADTREPO_DEV_PATH="/srv/www/vhosts/adtrepo-dev/"
 export PYTHONPATH=`pwd`/lib/python2.7/site-packages/autobuilder/:`pwd`/lib/python2.7/site-packages/:`pwd`/lib/python2.7/site-packages/autobuilder/buildsteps:$PYTHONPATH
 export PATH=`pwd`/bin:`pwd`/yocto-autobuilder/scripts:$PATH
-export YOCTO_AB_CONFIG=`pwd`/config/yoctoAB.conf
+export YOCTO_AB_CONFIG=`pwd`/buildset-config/yoctoAB.conf
 config_check=`cat ${PWD}/yocto-master/master.cfg|grep "'<USER>', '<PASS>'"`
 
 
@@ -67,7 +67,7 @@ echo " Setting envvars. "
 echo " In the future though please add the following to your shell environment: "
 echo " PYTHONPATH=${PWD}/lib/python2.7/site-packages/:${PWD}/lib/python2.7/site-packages/autobuilder/:${PWD}/lib/python2.7/site-packages/autobuilder/buildsteps:"'$PYTHONPATH'
 echo " PATH=${PWD}/bin:${PWD}/yocto-autobuilder/scripts:"'$PATH' 
-echo " YOCTO_AB_CONFIG=${PWD}/config/yoctoAB.conf"
+echo " YOCTO_AB_CONFIG=${PWD}/buildset-config/yoctoAB.conf"
 echo ""
 echo " If you don't, you should source this script everytime you want start the "
 echo " autobuilder."
