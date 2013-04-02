@@ -4,8 +4,8 @@ from twisted.application import service
 from buildbot.master import BuildMaster
 
 basedir = r'.'
-rotateLength = 1000000
-maxRotatedFiles = None
+rotateLength = 10000000
+maxRotatedFiles = 99
 
 # if this is a relocatable tac file, get the directory containing the TAC
 if basedir == '.':
