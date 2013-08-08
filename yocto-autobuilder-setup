@@ -31,6 +31,7 @@ export PUBLISH_SSTATE=False
 export SSTATE_PUBLISH_DIR="/tmp/yocto-autobuilder/sstate_mirror"
 export SOURCE_PUBLISH_DIR="/tmp/yocto-autobuilder/source"
 export BUILD_PUBLISH_DIR="/tmp/yocto-autobuilder/builds"
+export RELEASE_PUBLISH_DIR="/tmp/yocto-autobuilder/releases"
 export BUILD_HISTORY_COLLECT=False
 export SOURCE_DL_DIR="/tmp/yocto-autobuilder/downloads"
 export SOURCE_SSTATE_DIR="/tmp/yocto-autobuilder/sstate"
