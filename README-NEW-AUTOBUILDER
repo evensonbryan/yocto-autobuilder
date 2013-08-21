@@ -91,28 +91,101 @@ props: A list of dicts. This is used when you need to add properties to a
 steps: A list of dicts. These steps can be either custom buildsteps or basic 
        buildbot buildsteps with args passed as dict pairs. Custom buildsteps
        that we utilize are in lib/python2.7/site-packages/autobuilder/buildsteps
-       
+
+scheduler: A list of dicts. Each item defines a scheduler associated with this
+       buildset:
+
+	   'name_of_scheduler':
+                 {'type': 'Nightly'}
+
+       The scheduler type is specified by the 'type' property, where supported
+       values are 'Nightly' or 'SingleBranchScheduler', with 'Nightly' as the
+       default. Additional properties are used to configure the scheduler and
+       are type-specific:
+
+          Nightly scheduler properties:
+               month
+               dayOfWeek
+	       hour
+	       minute
+
+	  SingleBranchScheduler properties:
+               repository: the repository to attach the scheduler to; this
+                    is the repo name from the 'repos' section; the branch which
+                    the scheduler is attached to matches that in the repo
+                    definition.
+
+               stable-timer: how long (in seconds) to wait after change before
+                    triggering build to allow for changes to settle.
+
+	       change-user: the user name which the remote hook will use; the
+                    default value is the repository name as per the 'repository'
+                    property.
+
+               change-password: password which the remote hook will use; the
+                    default is the buildbot default 'changepw' -- if your
+                    autobuilder is publically accessible, you want to keep this
+                    secret to avoid injection of arbitrary changes into your
+                    autobuilder.
+
+           Extra Notes on SingleBranchScheduler setup
+           ------------------------------------------
+
+	   There is one SBS scheduler for each repository in the buildset, i.e.,
+           if your buildset contains more repositories, and you want build
+           triggered by changes to any of them, you need to define a scheduler
+           for each. This also means that you can mix and match, e.g., only
+           do nightly rebuilds for some repos and immediate for others.
+
+           The scheduler change filter is set up to watch changes only in the
+           single repository specified, so you have to set up your repository
+           hook to sent the repository url in the change set with the
+           --repository argument to git_buildbot.py, e.g., your git post-receive
+           hook could look something like:
+
+             #!/bin/sh
+             echo "$1 $2 $3" | \
+                  git_buildbot.py --repository="git://some_repo..."
+
+           For local testing, you can use a post-merge hook instead, along
+           these lines:
+
+             #!/bin/sh
+             PRE=$(git rev-parse 'HEAD@{1}')
+             POST=$(git rev-parse HEAD)
+             SYMNAME=$(git rev-parse --symbolic-full-name HEAD)
+             echo "$PRE $POST $SYMNAME" | \
+                  git_buildbot.py --repository="file:///where_your_repo_is"
+
+           Because of the way builbot change sources work, your change user
+           names must not colide with the user names used by your slaves.
+
 Example:
 
 [nightly-x86]
 builders: 'builder1'
-repos: [{'poky': 
-            {'repourl':'git://git.yoctoproject.org/poky', 
-             'bbpriority':'1', 
-             'branch':'master'}}, 
-        {'meta-qt3': 
-            {'repourl':'git://git.yoctoproject.org/meta-qt3', 
-             'bbpriority':'2', 
-             'branch':'master'}}] 
-steps: [{'SetDest':{}}, 
-        {'CheckOutLayers': {}}, 
-        {'RunPreamble': {}}, 
-        {'CreateAutoConf': {'machine': 'qemux86', 'SDKMACHINE' : 'i686', 
+repos: [{'poky':
+            {'repourl':'git://git.yoctoproject.org/poky',
+             'bbpriority':'1',
+             'branch':'master'}},
+        {'meta-qt3':
+            {'repourl':'git://git.yoctoproject.org/meta-qt3',
+             'bbpriority':'2',
+             'branch':'master'}}]
+steps: [{'SetDest':{}},
+        {'CheckOutLayers': {}},
+        {'RunPreamble': {}},
+        {'CreateAutoConf': {'machine': 'qemux86', 'SDKMACHINE' : 'i686',
                             'distro': 'poky'}},
         {'CreateBBLayersConf': {'buildprovider' : 'yocto'}},
         {'BuildImages': {'images': 'core-image-sato core-image-sato-dev'}},
         {'RunSanityTests': {'images': 'core-image-minimal core-image-sato'}},
         {'PublishArtifacts': {'artifacts': ['qemux86', 'atom-pc']}}]
+scheduler: [{'dev-branch-scheduler' :
+                {'type':'SingleBranchScheduler',
+		 'repository':'poky'
+		 'stable-timer':30,
+                 'change-password':'secret_change_password'}}]
 
 Adding Buildsteps
 -------------
