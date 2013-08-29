@@ -183,7 +183,7 @@ steps: [{'SetDest':{}},
         {'PublishArtifacts': {'artifacts': ['qemux86', 'atom-pc']}}]
 scheduler: [{'dev-branch-scheduler' :
                 {'type':'SingleBranchScheduler',
-		 'repository':'poky'
+		 'repository':'poky',
 		 'stable-timer':30,
                  'change-password':'secret_change_password'}}]
 
