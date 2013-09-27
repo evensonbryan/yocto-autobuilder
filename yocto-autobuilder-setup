@@ -53,6 +53,7 @@ export ADTREPO_DEV_PATH="/srv/www/vhosts/adtrepo-dev/"
 export PYTHONPATH=`pwd`/lib/python2.7/site-packages/autobuilder/:`pwd`/lib/python2.7/site-packages/:`pwd`/lib/python2.7/site-packages/autobuilder/buildsteps:$PYTHONPATH
 export PATH=`pwd`/bin:`pwd`/yocto-autobuilder/scripts:$PATH
 export YOCTO_AB_CONFIG=`pwd`/buildset-config/yoctoAB.conf
+export RESOLVED_TRIGGERED_HEAD=True
 config_check=`cat ${PWD}/yocto-master/master.cfg|grep "'<USER>', '<PASS>'"`
 
 
