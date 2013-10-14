@@ -104,10 +104,14 @@ scheduler: A list of dicts. Each item defines a scheduler associated with this
        are type-specific:
 
           Nightly scheduler properties:
-               month
-               dayOfWeek
-	       hour
-	       minute
+               month: The month in which to start the build, with January = 1.
+                    This defaults to '*', meaning every month.
+               dayOfWeek: The day of the week in which to start the build, with
+                    Monday = 1.  This defaults to '*', meaning every day.
+	       hour: The hour of the day in which to start the build, with 
+                    12:00 AM = 0.  This must be set by the user.
+	       minute: The minute of the hour in which to start the build, with
+                    0 to 59 as valid values.  This must be set by the user.
 
 	  SingleBranchScheduler properties:
                repository: the repository to attach the scheduler to; this
