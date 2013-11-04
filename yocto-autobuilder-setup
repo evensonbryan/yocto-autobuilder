@@ -79,6 +79,11 @@ echo " autobuilder."
 # Check to see if we've got a username/password set
 #
 ##########################
+if [ -n "ls config/autobuilder.conf" ]; then
+    echo "Creating config/autobuilder.conf from an example autobuilder.conf"
+    cp config/autobuilder.conf.example config/autobuilder.conf
+fi
+
 if [ -n "${config_check:+x}" ]; then
     echo ""
     echo " You've not setup the autobuilder before. Generating a username/password"
