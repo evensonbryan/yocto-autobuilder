@@ -30,6 +30,8 @@ export PUBLISH_SOURCE_MIRROR=False
 export PUBLISH_SSTATE=False
 export SSTATE_PUBLISH_DIR="/tmp/yocto-autobuilder/sstate_mirror"
 export SOURCE_PUBLISH_DIR="/tmp/yocto-autobuilder/source"
+export DL_DIR="/tmp/yocto-autobuilder/downloads"
+export SSTATE_DIR="/tmp/yocto-autobuilder/sstate"
 export BUILD_PUBLISH_DIR="/tmp/yocto-autobuilder/builds"
 export RELEASE_PUBLISH_DIR="/tmp/yocto-autobuilder/releases"
 export BUILD_HISTORY_COLLECT=False
@@ -54,8 +56,12 @@ export PYTHONPATH=`pwd`/lib/python2.7/site-packages/autobuilder/:`pwd`/lib/pytho
 export PATH=`pwd`/bin:`pwd`/yocto-autobuilder/scripts:$PATH
 export YOCTO_AB_CONFIG=`pwd`/buildset-config/yoctoAB.conf
 export RESOLVED_TRIGGERED_HEAD=True
-config_check=`cat ${PWD}/yocto-master/master.cfg|grep "'<USER>', '<PASS>'"`
+export OPTIMIZED_GIT_CLONE = False
+export OGIT_TRASH_DIR=/tmp/yocto-autobuilder/git/trash
+export OGIT_TRASH_CRON_TIME="0 0 * * *"
+export OGIT_TRASH_NICE_LEVEL="19"
 
+config_check=`cat ${PWD}/yocto-master/master.cfg|grep "'<USER>', '<PASS>'"`
 
 #########################################
 #
