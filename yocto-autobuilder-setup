@@ -56,7 +56,7 @@ export PYTHONPATH=`pwd`/lib/python2.7/site-packages/autobuilder/:`pwd`/lib/pytho
 export PATH=`pwd`/bin:`pwd`/yocto-autobuilder/scripts:$PATH
 export YOCTO_AB_CONFIG=`pwd`/buildset-config/yoctoAB.conf
 export RESOLVED_TRIGGERED_HEAD=True
-export OPTIMIZED_GIT_CLONE = False
+export OPTIMIZED_GIT_CLONE=False
 export OGIT_TRASH_DIR=/tmp/yocto-autobuilder/git/trash
 export OGIT_TRASH_CRON_TIME="0 0 * * *"
 export OGIT_TRASH_NICE_LEVEL="19"
@@ -85,9 +85,12 @@ echo " autobuilder."
 # Check to see if we've got a username/password set
 #
 ##########################
-if [ -n "ls config/autobuilder.conf" ]; then
+if [  ! -f  "config/autobuilder.conf" ]; then
+    echo ""
     echo "Creating config/autobuilder.conf from an example autobuilder.conf"
-    cp config/autobuilder.conf.example config/autobuilder.conf
+    echo ""
+    /bin/cp config/autobuilder.conf.example config/autobuilder.conf
+
 fi
 
 if [ -n "${config_check:+x}" ]; then
