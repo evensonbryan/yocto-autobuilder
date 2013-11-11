@@ -32,6 +32,7 @@ X8664TC_PUBLISH_DIR = "toolchain/x86_64"
 [BuildSettings]
 DL_DIR = "/tmp/yocto-autobuilder/downloads"
 SSTATE_DIR = "/tmp/yocto-autobuilder/sstate"
+#TMP_DIR = "/tmp/yocto-autobuilder/tmp"
 PERSISTDB_DIR = "/tmp/yocto-autobuilder/persistdb"
 BB_NUMBER_THREADS = "16"
 PARALLEL_MAKE = "16"
