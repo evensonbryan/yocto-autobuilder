@@ -5,7 +5,7 @@ OGIT_TRASH_CRON_TIME = "0 0 * * *"
 OGIT_TRASH_NICE_LEVEL = "19"
 
 [BuildHistorySettings]
-BUILD_HISTORY_COLLECT = True 
+BUILD_HISTORY_COLLECT = True
 BUILD_HISTORY_DIR = "/tmp/yocto-autobuilder/buildhistory"
 BUILD_HISTORY_REPO = "file:////tmp/yocto-autobuilder/buildhistory-repo"
 
@@ -13,7 +13,7 @@ BUILD_HISTORY_REPO = "file:////tmp/yocto-autobuilder/buildhistory-repo"
 PUBLISH_BUILDS = True
 PUBLISH_SOURCE_MIRROR = False
 PUBLISH_SSTATE = False
-MAINTAIN_PERSISTDB = True 
+MAINTAIN_PERSISTDB = True
 MACHINE_PUBLISH_DIR = "machines"
 BA_PUBLISH_DIR = "build-appliance"
 QEMU_PUBLISH_DIR = "/machines/qemu"
