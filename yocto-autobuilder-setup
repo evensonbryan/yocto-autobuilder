@@ -85,13 +85,20 @@ echo " autobuilder."
 # Check to see if we've got a username/password set
 #
 ##########################
-if [  ! -f  "config/autobuilder.conf" ]; then
+if [  ! -f  "./config/autobuilder.conf" ]; then
     echo ""
     echo "Creating config/autobuilder.conf from an example autobuilder.conf"
     echo ""
     /bin/cp config/autobuilder.conf.example config/autobuilder.conf
-
 fi
+
+if [  ! -d  "./buildset-config" ]; then
+    echo ""
+    echo "Creating buildset-config from buildset-config.master"
+    echo ""
+    /bin/cp -R buildset-config.master buildset-config
+fi
+
 
 if [ -n "${config_check:+x}" ]; then
     echo ""
