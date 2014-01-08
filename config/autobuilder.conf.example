@@ -1,5 +1,5 @@
 [GitSettings]
-OPTIMIZED_GIT_CLONE = False
+OPTIMIZED_GIT_CLONE = True
 OGIT_TRASH_DIR = /tmp/yocto-autobuilder/git/trash
 OGIT_TRASH_CRON_TIME = "0 0 * * *"
 OGIT_TRASH_NICE_LEVEL = "19"
