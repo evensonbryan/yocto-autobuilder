@@ -1,0 +1,125 @@
+#!/usr/bin/python
+'''
+Created on Feb 19, 2014
+
+__author__ = "Richard Purdie"
+__copyright__ = "Copyright 2014, Linux Foundation"
+__credits__ = ["Richard Purdie"]
+__license__ = "GPL"
+__version__ = "2.0"
+__maintainer__ = "Richard Purdie"
+__email__ = "richard.purdie@linuxfoundation.org"
+'''
+
+from __future__ import print_function
+import signal
+import os
+import sys
+import ConfigParser
+import threading
+import time
+
+if len(sys.argv) < 2:
+    print("Please specify the path to the config file on the commandline as the first argument")
+    sys.exit(1)
+
+config = ConfigParser.ConfigParser()
+config.read(sys.argv[1])
+
+sections = {}
+for section in config.sections():
+    sections[section] = dict(config.items(section))
+
+if "GitSettings" not in sections:
+    print("There is no GitSettings section in the configuration file?")
+    sys.exit(1)
+
+gitsettings = sections["GitSettings"]
+
+if "ogit_trash_dir" not in gitsettings:
+    print("Please set OGIT_TRASH_DIR in the configuration file")
+    sys.exit(1)
+
+if "ogit_mirror_dir" not in gitsettings:
+    print("Please set OGIT_MIRROR_DIR in the configuration file")
+    sys.exit(1)
+
+trashdir = gitsettings["ogit_trash_dir"].replace('"','').replace("'",'')
+mirrordir = gitsettings["ogit_mirror_dir"].replace('"','').replace("'",'')
+
+mirrorlist = [
+    "git://git.yoctoproject.org/meta-fsl-arm",
+    "git://git.yoctoproject.org/meta-fsl-ppc",
+    "git://git.yoctoproject.org/meta-intel",
+    "git://git.yoctoproject.org/meta-minnow",
+    "git://git.yoctoproject.org/meta-qt3",
+    "git://git.yoctoproject.org/poky",
+    "git://git.yoctoproject.org/eclipse-poky-kepler",
+    "git://git.yoctoproject.org/eclipse-poky-juno"
+]
+
+def trash_processor(trashdir):
+    print("Monitoring trashdir %s" % trashdir)
+    if not os.path.exists(trashdir):
+        os.makedirs(trashdir)
+    if trashdir == "/":
+        print("Not prepared to use a trashdir of /")
+        return
+    while True:
+        files = os.listdir(trashdir)
+        if files:
+            os.system("ionice -c 3 rm %s -rf" % trashdir)
+        else:
+            time.sleep(30*60) # 30 minutes
+    return
+
+def mirror_processor(mirrordir):
+    print("Updating mirrors in %s" % mirrordir)
+    mirrorpaths = []
+    for mirror in mirrorlist:
+        mirrorpaths.append(os.path.join(mirrordir, mirror.split("/")[2], mirror.split("/", 3)[3]))
+        if not os.path.exists(mirrorpaths[-1] + "/.git/"):
+            os.system("git clone %s %s" % (mirror, mirrorpaths[-1]))
+    while True:
+        for path in mirrorpaths:
+            os.chdir(path)
+            os.system("git fetch --all")
+        time.sleep(30*60) # 30 minutes
+    return
+
+#Check to see if this is running already. If so, kill it and rerun
+if os.path.exists('/tmp/.buildslave-janitor') and os.path.isfile('/tmp/.buildslave-janitor'):
+    print("A prior PID file exists. Attempting to kill.")
+    with open('/tmp/.buildslave-janitor', 'r') as f:
+        pid=f.readline()
+    try: 
+        os.kill(int(pid), signal.SIGKILL)
+        # We need to sleep for a second or two just to give the SIGKILL time
+        time.sleep(2)
+    except OSError as ex:
+        print("""We weren't able to kill the prior buildslave-janitor. Trying again.""")
+        pass
+    # Check if the process that we killed is alive.
+    try: 
+       os.kill(int(pid), 0)
+    except OSError as ex:
+       pass
+elif os.path.exists('/tmp/.buildslave-janitor') and not os.path.isfile('/tmp/.buildslave-janitor'):
+    raise Exception("""/tmp/.buildslave-janitor is a director. remove it to continue.""")
+try:
+    os.unlink('/tmp/.buildslave-janitor')
+except:
+    pass
+with open('/tmp/.buildslave-janitor', 'w') as f:
+    print(os.getpid(), file=f)
+
+threads = []
+threads.append(threading.Thread(target=trash_processor, args=(trashdir,)))
+threads[-1].start()
+threads.append(threading.Thread(target=mirror_processor, args=(mirrordir,)))
+threads[-1].start()
+
+# wait for all threads to finish
+for t in threads:
+    t.join()
+sys.exit(0)
