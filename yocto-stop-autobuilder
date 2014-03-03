@@ -20,7 +20,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-import os, sys, optparse, subprocess
+import os, sys, optparse, subprocess, signal, time
 from socket import gethostname
 
 usage  = """%prog [options] master|slave|both   
@@ -40,15 +40,36 @@ if len(args) != 2 or (sys.argv[1] != "both" and sys.argv[1] != "master" and sys.
 AB_BASE=os.path.dirname(os.path.abspath(sys.argv[0]))
 
 if sys.argv[1] == "master" or sys.argv[1] == "both":
-
-   os.chdir(os.path.join(AB_BASE, "yocto-master"))
-   subprocess.call(["make", "stop"])
-   os.chdir(AB_BASE)
+    os.chdir(os.path.join(AB_BASE, "yocto-master"))
+    subprocess.call(["make", "stop"])
+    os.chdir(AB_BASE)
 
 if sys.argv[1] == "slave" or sys.argv[1] == "both":
-
-   os.chdir(os.path.join(AB_BASE, "yocto-slave"))
-   subprocess.call(["make", "stop"])
-   os.chdir(AB_BASE)
-
+    os.chdir(os.path.join(AB_BASE, "yocto-slave"))
+    subprocess.call(["make", "stop"])
+    os.chdir(AB_BASE)
+    if os.path.exists('/tmp/.buildslave-janitor') and os.path.isfile('/tmp/.buildslave-janitor'):
+        print("A prior PID file exists. Attempting to kill.")
+        with open('/tmp/.buildslave-janitor', 'r') as f:
+            pid=f.readline()
+        try: 
+            os.kill(int(pid), signal.SIGKILL)
+            # We need to sleep for a second or two just to give the SIGKILL time
+            time.sleep(2)
+        except OSError as ex:
+            print("""We weren't able to kill the prior buildslave-janitor. Trying again.""")
+            pass
+        # Check if the process that we killed is alive.
+        try: 
+           os.kill(int(pid), 0)
+           raise Exception("""wasn't able to kill the process 
+                              HINT:use signal.SIGKILL or signal.SIGABORT""")
+        except OSError as ex:
+           pass
+    elif os.path.exists('/tmp/.buildslave-janitor') and not os.path.isfile('/tmp/.buildslave-janitor'):
+        raise Exception("""/tmp/.buildslave-janitor is a director. remove it to continue.""")
+    try:
+        os.unlink('/tmp/.buildslave-janitor')
+    except:
+        pass
 

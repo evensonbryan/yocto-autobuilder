@@ -51,14 +51,14 @@ if os.path.isfile(os.path.join(AB_BASE, ".setupdone")):
     parser = SafeConfigParser()
     parser.read('config/autobuilder.conf')
     print
-    print "Reading " + os.path.join(AB_BASE, "conf/autobuilder.conf")
+    print "Reading " + os.path.join(AB_BASE, "config/autobuilder.conf")
     print 
     os.environ["SLAVEBASEDIR"] = AB_BASE.strip('"') + "/yocto-slave"
     print ' Setting %s to %s' % ("SLAVEBASEDIR", AB_BASE + "/yocto-slave")
     for section_name in parser.sections():
         for name, value in parser.items(section_name):
             print ' Setting %s to %s' % (name.upper(), value)
-            os.environ[name.upper()] = value.strip('"')
+            os.environ[name.upper()] = value.strip('"').strip("'")
             if os.environ[name.upper()].endswith("_DIR"):
                 if not os.path.exists(value):
                     try:
@@ -69,16 +69,20 @@ if os.path.isfile(os.path.join(AB_BASE, ".setupdone")):
     print
 
     if sys.argv[1] == "master" or sys.argv[1] == "both":
-
-       os.chdir(os.path.join(AB_BASE, "yocto-master"))
-       subprocess.call(["make", "start"])
-       os.chdir(AB_BASE)
+        os.chdir(os.path.join(AB_BASE, "yocto-master"))
+        subprocess.call(["make", "start"])
+        os.chdir(AB_BASE)
 
     if sys.argv[1] == "slave" or sys.argv[1] == "both":
-
-       os.chdir(os.path.join(AB_BASE, "yocto-slave"))
-       subprocess.call(["make", "start"])
-       os.chdir(AB_BASE)
+        os.chdir(os.path.join(AB_BASE, "yocto-slave"))
+        subprocess.call(["make", "start"])
+        os.chdir(AB_BASE)
+        if os.environ["OPTIMIZED_GIT_CLONE"] == "True":
+            os.chdir(AB_BASE)
+            subprocess.Popen("python bin/buildslave-janitor " + os.path.join(AB_BASE, "config/autobuilder.conf"), 
+                           shell=True, stdin=None, 
+                           stdout=None, stderr=None, 
+                           close_fds=True)
 else:
     print "You have not sourced ./yocto-autobuilder-setup. Please do so first!"
     print ""
