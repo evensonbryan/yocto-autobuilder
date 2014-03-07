@@ -101,7 +101,48 @@ props: A list of dicts. This is used when you need to add properties to a
 
 steps: A list of dicts. These steps can be either custom buildsteps or basic 
        buildbot buildsteps with args passed as dict pairs. Custom buildsteps
-       that we utilize are in lib/python2.7/site-packages/autobuilder/buildsteps
+       that we utilize are in lib/python2.7/site-packages/autobuilder/buildsteps.
+
+       CreateBBLayersConf: This build step creates the bblayers.conf used by the
+       build system to determine which layers to use and where to find them.
+
+          {'CreateBBLayersConf': {'buildprovider' : 'yocto',
+            'bsplayer':'True',
+            'bspprovider':'intel',
+            'bbtextprepend':'text_to_prepend',
+            'bbtextappend':'text_to_append',
+            'layerdirs': ['layerdir1', 'layerdir2', ...]}}
+
+          buildprovider: Optional and defaults to 'yocto'.  If this is set to
+          'yocto', then it adds the layers' 'meta', 'meta-yocto' and
+          'meta-yocto-bsp' to BBLAYERS. If set to 'oe', then only 'meta' is
+          added to BBLAYERS.
+
+          bsplayer: Optional and defaults to False.  Set this to 'True' if you
+          want to use an established BSP layer and include its default layers.
+
+          bspprovider: Required if bsplayer is set to True.  Defines the BSP
+          provider so the default layers can be included.  At this time only
+          'intel', 'fsl-ppc' and 'fsl-arm' are recognized.
+
+          bbtextprepend: Prepends the given text to bblayers.conf.  Use \n in
+          the text to start a new line and always end the text with a \n.  For
+          example:
+              'bbtextprepend': '#Adding one comment line\n#Adding a second comment line\n'
+
+          bbtextappend: Appends the given text to bblayers.conf.  Same format
+          as bbtextprepend.
+
+          layerdirs: Used to add layers to BBLAYERS.  Layers are added in the
+          order specified and are added after the layers created by the
+          buildprovider.  For example:
+              'layerdirs': ['meta-openembedded/meta-oe',
+                  'meta-openembedded/meta-networking',
+                  'meta-openembedded/meta-gnome']
+          will append the layers meta-openembedded/meta-oe,
+          meta-openembedded/meta-networking, and meta-openembedded/meta-gnome
+          to BBLAYERS.  Note that this will override any default layers from a
+          bspprovider.
 
 scheduler: A list of dicts. Each item defines a scheduler associated with this
        buildset:
