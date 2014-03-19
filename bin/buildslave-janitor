@@ -66,11 +66,16 @@ def trash_processor(trashdir):
         print("Not prepared to use a trashdir of /")
         return
     while True:
-        files = os.listdir(trashdir)
-        if files:
-            os.system("ionice -c 3 rm %s -rf" % trashdir)
-        else:
-            time.sleep(30*60) # 30 minutes
+        try:
+            files = os.listdir(trashdir)
+            if files:
+                os.system("ionice -c 3 rm %s -rf" % trashdir)
+            else:
+                time.sleep(30*60) # 30 minutes
+        except Exception as e:
+            print("Exception %s in trash cleaner" % str(e))
+            time.sleep(60) # 1 minute timeout to prevent crazy looping
+            pass
     return
 
 def mirror_processor(mirrordir):
