@@ -79,7 +79,7 @@ if os.path.isfile(os.path.join(AB_BASE, ".setupdone")):
         os.chdir(AB_BASE)
         if os.environ["OPTIMIZED_GIT_CLONE"] == "True":
             os.chdir(AB_BASE)
-            subprocess.Popen("python bin/buildslave-janitor " + os.path.join(AB_BASE, "config/autobuilder.conf"), 
+            subprocess.Popen("python bin/buildslave-janitor " + os.path.join(AB_BASE, "config/autobuilder.conf") + ">> yocto-slave/janitor.log 2>&1", 
                            shell=True, stdin=None, 
                            stdout=None, stderr=None, 
                            close_fds=True)
