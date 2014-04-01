@@ -1,0 +1,4 @@
+. ./oe-init-build-env
+source toaster stop
+source toaster start
+xdg-open http://localhost:8000/
