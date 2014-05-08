@@ -23,6 +23,17 @@ TODO
 - deploy stuff
 - killing triggers. this has been a long standing issue. look into
 
+What is it
+------------
+Yocto Autobuilder is essentially some extension to the vanilla build bot.
+This extension mainly addresses configuration file handling and Yocto specific
+build steps.
+For better maintainability, the Autobuilder (see Autobuilder.py located at
+lib/python2.7/site-packages/autobuilder/), handles configuration from multiple
+files.
+Additional build steps such as CheckOutLayers.py or CreateBBLayersConf are
+Yocto specific and simplify the bulders configuration.
+
 Setup
 ------------
 Nothing here has changed much. 
