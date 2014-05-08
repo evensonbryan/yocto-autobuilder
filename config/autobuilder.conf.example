@@ -38,6 +38,8 @@ PERSISTDB_DIR = "/tmp/yocto-autobuilder/persistdb"
 BB_NUMBER_THREADS = "16"
 PARALLEL_MAKE = "16"
 RESOLVE_TRIGGERED_HEAD = True
+DEVKERNEL_MUT_REPO = "{'git://git.yoctoproject.org/poky-contrib':['stage/master_under_test', 'sgw/mut']}"
+DEVKERNEL = "linux-yocto-dev"
 
 [ADTREPO Settings]
 ADTREPO_POPULATE = False
