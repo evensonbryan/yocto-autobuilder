@@ -1,18 +1,21 @@
 import os
 
 from twisted.application import service
-from buildbot.master import BuildMaster
+from buildslave.bot import BuildSlave
 
 basedir = r'.'
 rotateLength = 10000000
-maxRotatedFiles = 99
+maxRotatedFiles = 10
 
 # if this is a relocatable tac file, get the directory containing the TAC
 if basedir == '.':
     import os.path
     basedir = os.path.abspath(os.path.dirname(__file__))
 
-application = service.Application('buildmaster')
+# note: this line is matched against to check that this is a buildslave
+# directory; do not edit it.
+application = service.Application('buildslave')
+
 try:
   from twisted.python.logfile import LogFile
   from twisted.python.log import ILogObserver, FileLogObserver
@@ -23,10 +26,16 @@ except ImportError:
   # probably not yet twisted 8.2.0 and beyond, can't set log yet
   pass
 
-configfile = r'master.cfg'
+buildmaster_host = 'localhost'
+port = 9989
+workername = 'builder1'
+passwd = '<PASS>'
+keepalive = 600
+usepty = 0
+umask = 022
+maxdelay = 300
 
-m = BuildMaster(basedir, configfile)
-m.setServiceParent(application)
-m.log_rotation.rotateLength = rotateLength
-m.log_rotation.maxRotatedFiles = maxRotatedFiles
+s = BuildSlave(buildmaster_host, port, workername, passwd, basedir,
+               keepalive, usepty, umask=umask, maxdelay=maxdelay)
+s.setServiceParent(application)
 

@@ -23,7 +23,7 @@
 import os, sys, optparse, subprocess, signal, time
 from socket import gethostname
 
-usage  = """%prog [options] master|slave|both   
+usage  = """%prog [options] controller|worker|both   
 
 Stop a yocto buildbot autobuilder instance.
 """
@@ -31,33 +31,33 @@ Stop a yocto buildbot autobuilder instance.
 parser = optparse.OptionParser(usage=usage)
 options, args = parser.parse_args( sys.argv )
 
-if len(args) != 2 or (sys.argv[1] != "both" and sys.argv[1] != "master" and sys.argv[1] != "slave") :
+if len(args) != 2 or (sys.argv[1] != "both" and sys.argv[1] != "controller" and sys.argv[1] != "worker") :
     parser.error("""
-    You must specify if you wish to stop master, slave or both. 
+    You must specify if you wish to stop controller, worker or both. 
    
     """ + usage )
 
 AB_BASE=os.path.dirname(os.path.abspath(sys.argv[0]))
 
-if sys.argv[1] == "master" or sys.argv[1] == "both":
-    os.chdir(os.path.join(AB_BASE, "yocto-master"))
+if sys.argv[1] == "controller" or sys.argv[1] == "both":
+    os.chdir(os.path.join(AB_BASE, "yocto-controller"))
     subprocess.call(["make", "stop"])
     os.chdir(AB_BASE)
 
-if sys.argv[1] == "slave" or sys.argv[1] == "both":
-    os.chdir(os.path.join(AB_BASE, "yocto-slave"))
+if sys.argv[1] == "worker" or sys.argv[1] == "both":
+    os.chdir(os.path.join(AB_BASE, "yocto-worker"))
     subprocess.call(["make", "stop"])
     os.chdir(AB_BASE)
-    if os.path.exists('/tmp/.buildslave-janitor') and os.path.isfile('/tmp/.buildslave-janitor'):
+    if os.path.exists('/tmp/.buildworker-janitor') and os.path.isfile('/tmp/.buildworker-janitor'):
         print("A prior PID file exists. Attempting to kill.")
-        with open('/tmp/.buildslave-janitor', 'r') as f:
+        with open('/tmp/.buildworker-janitor', 'r') as f:
             pid=f.readline()
         try: 
             os.kill(int(pid), signal.SIGKILL)
             # We need to sleep for a second or two just to give the SIGKILL time
             time.sleep(2)
         except OSError as ex:
-            print("""We weren't able to kill the prior buildslave-janitor. Trying again.""")
+            print("""We weren't able to kill the prior buildworker-janitor. Trying again.""")
             pass
         # Check if the process that we killed is alive.
         try: 
@@ -66,10 +66,10 @@ if sys.argv[1] == "slave" or sys.argv[1] == "both":
                               HINT:use signal.SIGKILL or signal.SIGABORT""")
         except OSError as ex:
            pass
-    elif os.path.exists('/tmp/.buildslave-janitor') and not os.path.isfile('/tmp/.buildslave-janitor'):
-        raise Exception("""/tmp/.buildslave-janitor is a director. remove it to continue.""")
+    elif os.path.exists('/tmp/.buildworker-janitor') and not os.path.isfile('/tmp/.buildworker-janitor'):
+        raise Exception("""/tmp/.buildworker-janitor is a director. remove it to continue.""")
     try:
-        os.unlink('/tmp/.buildslave-janitor')
+        os.unlink('/tmp/.buildworker-janitor')
     except:
         pass
 
