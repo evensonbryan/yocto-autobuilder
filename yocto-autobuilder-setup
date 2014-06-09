@@ -24,7 +24,7 @@
 # config to parse
 #########################################
 
-export SLAVEBASEDIR=`pwd`/yocto-slave
+export WORKERBASEDIR=`pwd`/yocto-worker
 export PUBLISH_BUILDS=False
 export PUBLISH_SOURCE_MIRROR=False
 export PUBLISH_SSTATE=False
@@ -61,7 +61,7 @@ export OGIT_TRASH_DIR=/tmp/yocto-autobuilder/git/trash
 export OGIT_TRASH_CRON_TIME="0 0 * * *"
 export OGIT_TRASH_NICE_LEVEL="19"
 
-config_check=`cat ${PWD}/yocto-master/master.cfg|grep "'<USER>', '<PASS>'"`
+config_check=`cat ${PWD}/yocto-controller/controller.cfg|grep "'<USER>', '<PASS>'"`
 
 #########################################
 #
@@ -94,9 +94,9 @@ fi
 
 if [  ! -d  "./buildset-config" ]; then
     echo ""
-    echo "Creating buildset-config from buildset-config.master"
+    echo "Creating buildset-config from buildset-config.controller"
     echo ""
-    /bin/cp -R buildset-config.master buildset-config
+    /bin/cp -R buildset-config.controller buildset-config
 fi
 
 
@@ -112,17 +112,17 @@ if [ -n "${config_check:+x}" ]; then
     echo ""
     echo " Modifying the following files with this username/password:"
     echo ""
-    echo " ${PWD}/yocto-master/master.cfg "
-    sed -i "s/<USER>/$username/g" ${PWD}/yocto-master/master.cfg
-    sed -i "s/<PASS>/$password/g" ${PWD}/yocto-master/master.cfg
+    echo " ${PWD}/yocto-controller/controller.cfg "
+    sed -i "s/<USER>/$username/g" ${PWD}/yocto-controller/controller.cfg
+    sed -i "s/<PASS>/$password/g" ${PWD}/yocto-controller/controller.cfg
 
-    echo " ${PWD}/yocto-master/buildbot.tac "
-    sed -i "s/<USER>/$username/g" ${PWD}/yocto-master/buildbot.tac
-    sed -i "s/<PASS>/$password/g" ${PWD}/yocto-master/buildbot.tac
+    echo " ${PWD}/yocto-controller/buildbot.tac "
+    sed -i "s/<USER>/$username/g" ${PWD}/yocto-controller/buildbot.tac
+    sed -i "s/<PASS>/$password/g" ${PWD}/yocto-controller/buildbot.tac
 
-    echo " ${PWD}/yocto-slave/buildbot.tac "
-    sed -i "s/<USER>/$username/g" ${PWD}/yocto-slave/buildbot.tac
-    sed -i "s/<PASS>/$password/g" ${PWD}/yocto-slave/buildbot.tac
+    echo " ${PWD}/yocto-worker/buildbot.tac "
+    sed -i "s/<USER>/$username/g" ${PWD}/yocto-worker/buildbot.tac
+    sed -i "s/<PASS>/$password/g" ${PWD}/yocto-worker/buildbot.tac
     echo ""
     echo " If you wish to use your own generated username and password please "
     echo " modify the above files as needed. Please see the README for more "
@@ -141,7 +141,7 @@ if [ -n "${config_check:+x}" ]; then
     echo " a different git fetcher (yoctogit.py)"
     echo ""
     echo "#########################################################################"
-    buildbot upgrade-master ${PWD}/yocto-master
+    buildbot upgrade-master ${PWD}/yocto-controller
     ################
     #
     # We touch this because we know they've at least run this once
@@ -151,10 +151,10 @@ if [ -n "${config_check:+x}" ]; then
 fi
 
 echo " To start the autobuilder:"
-echo " ./yocto-start-autobuilder <slave|master|both>"
+echo " ./yocto-start-autobuilder <worker|controller|both>"
 echo ""
 echo " To stop the autobuilder:"
-echo " ./yocto-stop-autobuilder <slave|master|both>"
+echo " ./yocto-stop-autobuilder <worker|controller|both>"
 echo ""
 
 
