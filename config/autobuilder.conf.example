@@ -10,6 +10,11 @@ BUILD_HISTORY_COLLECT = True
 BUILD_HISTORY_DIR = "/tmp/yocto-autobuilder/buildhistory"
 BUILD_HISTORY_REPO = "file:////tmp/yocto-autobuilder/buildhistory-repo"
 
+[ErrorReportSettings]
+ERROR_REPORT_COLLECT = True
+#ERROR_REPORT_SERVER = "http://yourerrorreport.url.com"
+#ERROR_REPORT_DIR = "/path/to/error/logs"
+
 [PublishSettings]
 PUBLISH_BUILDS = True
 PUBLISH_SOURCE_MIRROR = False
