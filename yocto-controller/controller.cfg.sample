@@ -6,9 +6,12 @@
 
 # This is the dictionary that the buildmaster pays attention to. We also use
 # a shorter alias to save typing.
+
 c = BuildmasterConfig = {}
 
-####### PROJECT IDENTITY
+####################
+# PROJECT IDENTITY #
+####################
 
 # the 'title' string will appear at the top of this buildbot
 # installation's html.WebStatus home page (linked to the
@@ -25,20 +28,26 @@ c['titleURL'] = "https://launchpad.net/pyflakes"
 
 c['buildbotURL'] = "http://localhost:8010/"
 
-####### BUILDSLAVES
+###############
+# BUILDSLAVES #
+###############
 
 # The 'slaves' list defines the set of recognized buildslaves. Each element is
 # a BuildSlave object, specifying a unique slave name and password.  The same
 # slave name and password must be configured on the slave.
+
 from buildbot.buildslave import BuildSlave
 c['slaves'] = [BuildSlave("example-slave", "pass")]
 
 # 'slavePortnum' defines the TCP port to listen on for connections from slaves.
 # This must match the value configured into the buildslaves (with their
 # --master option)
+
 c['slavePortnum'] = 9989
 
-####### BUILDERS
+############
+# BUILDERS #
+############
 
 # The 'builders' list defines the Builders, which tell Buildbot how to perform a build:
 # what steps, and which slaves can execute them.  Note that any particular build will
@@ -49,8 +58,10 @@ from buildbot.steps.source.git import Git
 from buildbot.steps.shell import ShellCommand
 
 factory = BuildFactory()
+
 # check out the source
 factory.addStep(Git(repourl='git://github.com/buildbot/pyflakes.git', mode='incremental'))
+
 # run the tests (note that this will require that 'trial' is installed)
 factory.addStep(ShellCommand(command=["trial", "pyflakes"]))
 
@@ -59,22 +70,27 @@ from buildbot.config import BuilderConfig
 c['builders'] = []
 c['builders'].append(
     BuilderConfig(name="runtests",
-      slavenames=["example-slave"],
-      factory=factory))
+        slavenames=["example-slave"],
+        factory=factory))
 
-####### CHANGESOURCES
+#################
+# CHANGESOURCES #
+#################
 
 # the 'change_source' setting tells the buildmaster how it should find out
 # about source code changes.  Here we point to the buildbot clone of pyflakes.
 
 from buildbot.changes.gitpoller import GitPoller
 c['change_source'] = []
-c['change_source'].append(GitPoller(
+c['change_source'].append(
+    GitPoller(
         'git://github.com/buildbot/pyflakes.git',
         workdir='gitpoller-workdir', branch='master',
         pollinterval=300))
 
-####### SCHEDULERS
+##############
+# SCHEDULERS #
+##############
 
 # Configure the Schedulers, which decide how to react to incoming changes.  In this
 # case, just kick off a 'runtests' build
@@ -83,16 +99,20 @@ from buildbot.schedulers.basic import SingleBranchScheduler
 from buildbot.schedulers.forcesched import ForceScheduler
 from buildbot.changes import filter
 c['schedulers'] = []
-c['schedulers'].append(SingleBranchScheduler(
-                            name="all",
-                            change_filter=filter.ChangeFilter(branch='master'),
-                            treeStableTimer=None,
-                            builderNames=["runtests"]))
-c['schedulers'].append(ForceScheduler(
-                            name="force",
-                            builderNames=["runtests"]))
+c['schedulers'].append(
+    SingleBranchScheduler(
+        name="all",
+        change_filter=filter.ChangeFilter(branch='master'),
+        treeStableTimer=None,
+        builderNames=["runtests"]))
+c['schedulers'].append(
+    ForceScheduler(
+        name="force",
+        builderNames=["runtests"]))
 
-####### STATUS TARGETS
+##################
+# STATUS TARGETS #
+##################
 
 # 'status' is a list of Status Targets. The results of each build will be
 # pushed to these targets. buildbot/status/*.py has a variety to choose from,
@@ -117,10 +137,11 @@ authz_cfg=authz.Authz(
 )
 c['status'].append(html.WebStatus(http_port=8010, authz=authz_cfg))
 
-####### DB URL
+##########
+# DB URL #
+##########
 
-c['db'] = {
-    # This specifies what database buildbot uses to store its state.  You can leave
-    # this at its default for all but the largest installations.
-    'db_url' : "sqlite:///state.sqlite",
-}
+# This specifies what database buildbot uses to store its state.  You can leave
+# this at its default for all but the largest installations.
+
+c['db'] = {'db_url' : "sqlite:///state.sqlite",}
