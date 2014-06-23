@@ -138,6 +138,18 @@ authz_cfg=authz.Authz(
 c['status'].append(html.WebStatus(http_port=8010, authz=authz_cfg))
 
 ##########
+# CONFIG #
+##########
+
+from config import *
+
+c['builders'] = YOCTO_BUILDERS
+c['change_source'] = YOCTO_SOURCES
+c['schedulers'] = YOCTO_SCHED
+c['projectName'] = YOCTO_PROJNAME
+c['projectURL'] = YOCTO_PROJURL
+
+##########
 # DB URL #
 ##########
 
