@@ -2,7 +2,7 @@
 # ex: set syntax=python:
 
 # This is a sample buildmaster config file. It must be installed as
-# 'master.cfg' in your buildmaster's base directory.
+# 'controller.cfg' in your buildmaster's base directory.
 
 # This is the dictionary that the buildmaster pays attention to. We also use
 # a shorter alias to save typing.
@@ -28,22 +28,24 @@ c['titleURL'] = "https://launchpad.net/pyflakes"
 
 c['buildbotURL'] = "http://localhost:8010/"
 
-###############
-# BUILDSLAVES #
-###############
+################
+# BUILDWORKERS #
+################
 
-# The 'slaves' list defines the set of recognized buildslaves. Each element is
-# a BuildSlave object, specifying a unique slave name and password.  The same
-# slave name and password must be configured on the slave.
+# The 'workers' list defines the set of recognized buildworkers. Each element 
+# is a BuildSlave object (by outdated Builbot terminology) renamed as 
+# BuildWorker, specifying a unique worker name and password.  The same worker
+# name and password must be configured on the worker. 
+# 
 
-from buildbot.buildslave import BuildSlave
-c['slaves'] = [BuildSlave("example-slave", "pass")]
+from buildbot.buildslave import BuildSlave as BuildWorker
+c['workers'] = [BuildWorker("example-worker", "pass", max_builds=3),]
 
-# 'slavePortnum' defines the TCP port to listen on for connections from slaves.
-# This must match the value configured into the buildslaves (with their
-# --master option)
+# 'workerPortnum' defines the TCP port to listen on for connections from 
+# workers. This must match the value configured into the buildworkers 
+# (with their --master option)
 
-c['slavePortnum'] = 9989
+c['workerPortnum'] = 9989
 
 ############
 # BUILDERS #
@@ -70,7 +72,7 @@ from buildbot.config import BuilderConfig
 c['builders'] = []
 c['builders'].append(
     BuilderConfig(name="runtests",
-        slavenames=["example-slave"],
+        slavenames=["example-worker"],
         factory=factory))
 
 #################
@@ -157,3 +159,12 @@ c['projectURL'] = YOCTO_PROJURL
 # this at its default for all but the largest installations.
 
 c['db'] = {'db_url' : "sqlite:///state.sqlite",}
+
+############
+# POINTERS #
+############
+
+# Point outdated buildbot terminology at our updated terms
+
+c['slavePortnum'] = c['workerPortnum']
+c['slaves'] = c['workers']
