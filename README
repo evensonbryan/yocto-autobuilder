@@ -6,7 +6,7 @@ user. This document outlines some of the configuration options/files,
 autobuilder setup gotchas and general autobuilder best practices.
 
 Setup
-============
+=====
 
 1. Setting the Yocto autobuilder up to run headless sanity tests
 
@@ -57,101 +57,89 @@ Setup
     1. Create an empty git repo. Make a single commit to it and the create and
        push branches for each of the nightly core architectures (ie. mips, ppc,
        x86...)
+
     2. Find a central location to create a clone for this. This works best if
        you have a set up similar to the production autobuilder (NAS with many
        builders)
+
     3. Run the following:
 
-# This is an example of how to set up a local build history checkout. Paths
-# obviously are situation dependant.
-mkdir /nas/buildhistory
-cd /nas/buildhistory
-git clone ssh://git@git.myproject.org/buildhistory
-git clone ssh://git@git.myproject.org/buildhistory nightly-arm
-git clone ssh://git@git.myproject.org/buildhistory nightly-x86
-git clone ssh://git@git.myproject.org/buildhistory nightly-x86-64
-git clone ssh://git@git.myproject.org/buildhistory nightly-ppc
-git clone ssh://git@git.myproject.org/buildhistory nightly-mips
-for x in `ls|grep nightly` do cd $x; git checkout $x; cd /nas/buildhistory; done
+        # This is an example of how to set up a local build history checkout. Paths
+        # obviously are situation dependant.
+        mkdir /nas/buildhistory
+        cd /nas/buildhistory
+        git clone ssh://git@git.myproject.org/buildhistory
+        git clone ssh://git@git.myproject.org/buildhistory nightly-arm
+        git clone ssh://git@git.myproject.org/buildhistory nightly-x86
+        git clone ssh://git@git.myproject.org/buildhistory nightly-x86-64
+        git clone ssh://git@git.myproject.org/buildhistory nightly-ppc
+        git clone ssh://git@git.myproject.org/buildhistory nightly-mips
+        for x in `ls|grep nightly` do cd $x; git checkout $x; cd /nas/buildhistory; done
 
     4. Within the autobuilder.conf of EACH slave change the following:
 
-BUILD_HISTORY_COLLECT = True
-BUILD_HISTORY_DIR = "/nas/buildhistory"
-BUILD_HISTORY_REPO = "ssh://git@git.myproject.org/buildhistory"
+        BUILD_HISTORY_COLLECT = True
+        BUILD_HISTORY_DIR = "/nas/buildhistory"
+        BUILD_HISTORY_REPO = "ssh://git@git.myproject.org/buildhistory"
 
+config/autobuilder.conf
+=======================
 
+    PublishSettings
+    ===============
 
-Settings
-============
+        PUBLISH_BUILDS:
+        Determines if build artifacts are copied into a release directory, 
+        as opposed to created just to see if they were successfully built. 
+        Generally not used for developer autobuilders, it's quite useful for
+        production autobuilders.
 
-File: conf/autobuilder.conf settings
+        PUBLISH_SOURCE_MIRROR:
+        Publish where source depedences are fetched from.
 
-PublishSettings
----------------
+        PUBLISH_SSTATE:
+        If True, use to sync sstate to sstate mirror
 
-PUBLISH_BUILDS:
-Determins if build artifacts are copied into a release directory. Generally not
-used for developer autobuilders, it's quite useful for production autobuilders.
+        BUILD_HISTORY_COLLECT:
+        Collects and pushes buildhistory artifacts if True. Defaults to False
 
-PUBLISH_SOURCE_MIRROR:
-If True, use BB_GENERATE_MIRROR_TARBALLS = "1" in auto.conf
+    BuildSettings
+    =============
 
-PUBLISH_SSTATE:
-If True, use to sync sstate to sstate mirror
+        SOURCE_DL_DIR:
+        autobuilder worker's DL_DIR
 
-SSTATE_PUBLISH_DIR:
-Directory LSB_SSTATE_DIR and SOURCE_SSTATE_DIR are copied to if 
-PUBLISH_SSTATE = True
+        SOURCE_SSTATE_DIR: 
+        SState directory for non-lsb builds
 
-SOURCE_PUBLISH_DIR:
-Directory sources are copied to if PUBLISH_SOURCE_MIRROR = True
+        LSB_SSTATE_DIR:
+        SState directory for lsb builds. This should usually be the same as 
+        SOURCE_SSTATE_DIR, however is left in for historical reasons.
 
-BUILD_PUBLISH_DIR:
-Directory build artifacts are copied to if PUBLISH_BUILDS = True
+        BUILD_HISTORY_DIR:
+        Local checkout of the build history repository
 
-BUILD_HISTORY_COLLECT:
-Collects and pushes buildhistory artifacts if True. Defaults to False
+        BUILD_HISTORY_REPO:
+        Main repository to store build history statistics
 
-BuildSettings
--------------
+    IASettings
+    ==========
 
-SOURCE_DL_DIR:
-autobuilder slave's DL_DIR
-
-SOURCE_SSTATE_DIR: 
-SState directory for non-lsb builds
-
-LSB_SSTATE_DIR:
-SState directory for lsb builds. This should usually be the same as 
-SOURCE_SSTATE_DIR, however is left in for historical reasons.
-
-BUILD_HISTORY_DIR:
-Local checkout of the build history repository
-
-BUILD_HISTORY_REPO:
-Main repository to store build history statistics
-
-IASettings
--------------
-
-EMGD_DRIVER_DIR: 
-Older versions of the crownbay meta-intel BSP required a third party binary
-driver to have been predownloaded. This points to the location of the EMGD 
-driver binary.
+        EMGD_DRIVER_DIR: 
+        Older versions of the crownbay meta-intel BSP required a third party binary
+        driver to have been predownloaded. This points to the location of the EMGD 
+        driver binary.
 
 Files used for Yocto-Autobuilder Configuration
-----------------------------------------------
+==============================================
+
 Name: conf/autobuilder.conf 
 Purpose:
 This file is used to set autobuilder wide parameters, like where various build
 artifacts are published to, DL_DIR, SSTATE_DIR or if build artifacts should be
 published (needed for production autobuilders, not needed for desktop builders)
 
-
 Name: conf/yoctoAB.conf 
 Purpose:
 This is the main yocto autobuilder config. Documentation for this and associated
 format is in README_CONFIG
-
-

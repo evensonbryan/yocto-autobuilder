@@ -1,5 +1,6 @@
 Introduction
 ------------
+
 Prior versions of the yocto-autobuilder required an extensive knowledge of 
 buildbot as well as basic python. Over the years, as more targets were added
 the main configuation file had become hard to maintain, harder to read and, 
@@ -25,6 +26,7 @@ TODO
 
 What is it
 ------------
+
 Yocto Autobuilder is essentially some extension to the vanilla build bot.
 This extension mainly addresses configuration file handling and Yocto specific
 build steps.
@@ -36,6 +38,7 @@ Yocto specific and simplify the bulders configuration.
 
 Setup
 ------------
+
 Nothing here has changed much. 
 
 git clone git://git.yoctoproject.org/yocto-autobuilder
@@ -53,6 +56,7 @@ build target configuration out into the config/* directory
 
 Files
 -----
+
 There are two needed files in this directory. One file, autobuilder.conf, is a
 global definition file which sets various globals that slaves and master need
 to know about. This hasn't really changed from prior versions.
@@ -66,6 +70,7 @@ nice and neat.
 
 yoctoAB.conf:
 -------------
+
 The main BuildSets section required for the configuration contains a single 
 property:
 
@@ -78,6 +83,7 @@ a small patch required to utilize this functionality.
 
 buildset configuration
 -------------
+
 Each buildset must start with a section name followed by at three to four 
 properties:
 
@@ -147,7 +153,7 @@ steps: A list of dicts. These steps can be either custom buildsteps or basic
 scheduler: A list of dicts. Each item defines a scheduler associated with this
        buildset:
 
-	   'name_of_scheduler':
+  	   'name_of_scheduler':
                  {'type': 'Nightly'}
 
        The scheduler type is specified by the 'type' property, where supported
