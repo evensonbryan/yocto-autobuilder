@@ -33,21 +33,21 @@ c['buildbotURL'] = "http://localhost:8010/"
 ################
 
 # The 'workers' list defines the set of recognized buildworkers. Each element 
-# is a BuildSlave object (by outdated Builbot terminology) renamed as 
-# BuildWorker, specifying a unique worker name and password.  The same worker
-# name and password must be configured on the worker. 
-#
-# Within yocto-controller/controller.cfg make the following changes substituing
-# <PASS> for your debug password and  max_builds for the number of builds you
-# wish to run on each builder. Your main builder that will run the nightly 
-# trigger buildset should have at least 2 build workers running.
+# is a BuildWorker object (renamed from the BuildSlave buildbot terminology), 
+# specifying a unique worker name and your debug password "<PASS>". The same 
+# worker name and password must be configured on the worker. The BuildWorker
+# object can also take an optional max_builds for the number of builds you 
+# wish to run on each builder.
+# 
+# To get multiple buildworkers add another BuildWorker entry to c['workers'].
+# Your main builder that will run the nightly trigger buildset should have 
+# at least 2 build workers running. An example is below:
 #
 #     c['workers'] = [BuildWorker("builder1", "<PASS>", max_builds=3),
 #                     BuildWorker("builder2", "<PASS>", max_builds=3),]
 
-
 from buildbot.buildslave import BuildSlave as BuildWorker
-c['workers'] = [BuildWorker("example-worker", "pass", max_builds=3),]
+c['workers'] = [BuildWorker("example-worker", "<PASS>", max_builds=3),]
 
 # 'workerPortnum' defines the TCP port to listen on for connections from 
 # workers. This must match the value configured into the buildworkers 
