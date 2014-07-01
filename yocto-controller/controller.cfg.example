@@ -116,8 +116,8 @@ c['db'] = {'db_url' : "sqlite:///state.sqlite",}
 
 # Point outdated buildbot terminology at our updated terms
 
-c['slavePortnum'] = c['workerPortnum']
-c['slaves'] = c['workers']
+c['slavePortnum'] = c['workerPortnum']; del c['workerPortnum']
+c['slaves'] = c['workers']; del c['workers']
 
 ###############
 # YOCTOMAILER #
