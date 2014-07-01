@@ -47,7 +47,7 @@ c['buildbotURL'] = "http://localhost:8010"
 #                     BuildWorker("builder2", "<PASS>", max_builds=3),]
 
 from buildbot.buildslave import BuildSlave as BuildWorker
-c['workers'] = [BuildWorker("example-worker", "<PASS>", max_builds=3),]
+c['workers'] = [BuildWorker("builder1", "<PASS>", max_builds=3),]
 
 # 'workerPortnum' defines the TCP port to listen on for connections from 
 # workers. This must match the value configured into the buildworkers 
