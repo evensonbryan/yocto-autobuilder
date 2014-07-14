@@ -1,0 +1,48 @@
+
+config/autobuilder.conf
+=======================
+
+    PublishSettings
+    ===============
+
+        PUBLISH_BUILDS:
+        Determines if build artifacts are copied into a release directory,
+        as opposed to created just to see if they were successfully built.
+        Generally not used for developer autobuilders, it's quite useful for
+        production autobuilders.
+
+        PUBLISH_SOURCE_MIRROR:
+        Publish where source depedences are fetched from.
+
+        PUBLISH_SSTATE:
+        If True, use to sync sstate to sstate mirror
+
+        BUILD_HISTORY_COLLECT:
+        Collects and pushes buildhistory artifacts if True. Defaults to False
+
+    BuildSettings
+    =============
+
+        SOURCE_DL_DIR:
+        autobuilder worker's DL_DIR
+
+        SOURCE_SSTATE_DIR:
+        SState directory for non-lsb builds
+
+        LSB_SSTATE_DIR:
+        SState directory for lsb builds. This should usually be the same as
+        SOURCE_SSTATE_DIR, however is left in for historical reasons.
+
+        BUILD_HISTORY_DIR:
+        Local checkout of the build history repository
+
+        BUILD_HISTORY_REPO:
+        Main repository to store build history statistics
+
+    IASettings
+    ==========
+
+        EMGD_DRIVER_DIR:
+        Older versions of the crownbay meta-intel BSP required a third party
+        binary driver to have been predownloaded. This points to the location
+        of the EMGD driver binary.
