@@ -2,7 +2,7 @@ Setting up a Yocto Autobuilder Build Cluster
 ============================================
 
 Most autobuilder setups are individual to the circumstances of the
-user. This document outlines some of the configuration options/files, 
+user. This document outlines some of the configuration options/files,
 autobuilder setup gotchas and general autobuilder best practices.
 
 Setup
@@ -10,7 +10,7 @@ Setup
 
 1. Setting the Yocto autobuilder up to run headless sanity tests
 
-    If you plan on using the yocto autobuilder to run sanity testing, 
+    If you plan on using the yocto autobuilder to run sanity testing,
     you will need to:
 
     1. Install tight-vnc client and server.
@@ -21,36 +21,36 @@ Setup
 
     4. Setup and start vnc session as the autobuilder user.
 
-    5. You MUST manually connect to the vnc session at least once prior to 
-       running a qemu sanity test (Something is getting set during the initial 
-       connection that I haven't figured out yet. Manually connecting seems to 
+    5. You MUST manually connect to the vnc session at least once prior to
+       running a qemu sanity test (Something is getting set during the initial
+       connection that I haven't figured out yet. Manually connecting seems to
        set up the session correctly.)
 
 2. Adding additional build workers
 
-    The production yocto autobuilder uses a cluster of build workers, all 
-    sharing the same SSTATE_DIR and DL_DIR via an NFS4 mounted NAS. The main 
+    The production yocto autobuilder uses a cluster of build workers, all
+    sharing the same SSTATE_DIR and DL_DIR via an NFS4 mounted NAS. The main
     nightly trigger prepopulates the DL_DIR, allowing the workers to not have
     to deal with a lot of downloading. In theory you could also run your build
     workers with NO_NETWORK to enforce a single point of populating DL_DIR.
 
     Running multiple build workers is fairly simple, but does require some setup:
 
-    a. Ensure the settings in autobuilder.conf are valid for each buildworker, 
-       As certain variables are set within this file that are work with the 
+    a. Ensure the settings in autobuilder.conf are valid for each buildworker,
+       As certain variables are set within this file that are work with the
        local configuruation on each builder.
 
-    b. Within yocto-controller/controller.cfg add your worker to the 
+    b. Within yocto-controller/controller.cfg add your worker to the
        c['workers'] list inside of the BUILDWORKERS section
-    
-    c. For each build worker change the WORKER SETTINGS section of 
+
+    c. For each build worker change the WORKER SETTINGS section of
        yocto-worker/buildbot.tac to match the settings in controller.cfg.
 
 3. Setting up build history.
 
     Build History is used to track changes to packages and images. By default
     the autobuilder does not collect build history. The production autobuilder
-    does have this functionality enabled. 
+    does have this functionality enabled.
 
     Setting up build history requires the following steps:
 
@@ -82,64 +82,16 @@ Setup
         BUILD_HISTORY_DIR = "/nas/buildhistory"
         BUILD_HISTORY_REPO = "ssh://git@git.myproject.org/buildhistory"
 
-config/autobuilder.conf
-=======================
-
-    PublishSettings
-    ===============
-
-        PUBLISH_BUILDS:
-        Determines if build artifacts are copied into a release directory, 
-        as opposed to created just to see if they were successfully built. 
-        Generally not used for developer autobuilders, it's quite useful for
-        production autobuilders.
-
-        PUBLISH_SOURCE_MIRROR:
-        Publish where source depedences are fetched from.
-
-        PUBLISH_SSTATE:
-        If True, use to sync sstate to sstate mirror
-
-        BUILD_HISTORY_COLLECT:
-        Collects and pushes buildhistory artifacts if True. Defaults to False
-
-    BuildSettings
-    =============
-
-        SOURCE_DL_DIR:
-        autobuilder worker's DL_DIR
-
-        SOURCE_SSTATE_DIR: 
-        SState directory for non-lsb builds
-
-        LSB_SSTATE_DIR:
-        SState directory for lsb builds. This should usually be the same as 
-        SOURCE_SSTATE_DIR, however is left in for historical reasons.
-
-        BUILD_HISTORY_DIR:
-        Local checkout of the build history repository
-
-        BUILD_HISTORY_REPO:
-        Main repository to store build history statistics
-
-    IASettings
-    ==========
-
-        EMGD_DRIVER_DIR: 
-        Older versions of the crownbay meta-intel BSP required a third party binary
-        driver to have been predownloaded. This points to the location of the EMGD 
-        driver binary.
-
 Files used for Yocto-Autobuilder Configuration
 ==============================================
 
-Name: conf/autobuilder.conf 
+Name: conf/autobuilder.conf
 Purpose:
 This file is used to set autobuilder wide parameters, like where various build
 artifacts are published to, DL_DIR, SSTATE_DIR or if build artifacts should be
 published (needed for production autobuilders, not needed for desktop builders)
 
-Name: conf/yoctoAB.conf 
+Name: conf/yoctoAB.conf
 Purpose:
 This is the main yocto autobuilder config. Documentation for this and associated
 format is in README_CONFIG
