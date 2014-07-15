@@ -8,79 +8,79 @@ autobuilder setup gotchas and general autobuilder best practices.
 Setup to run headless sanity tests
 ===================================
 
-    If you plan on using the yocto autobuilder to run sanity testing,
-    you will need to:
+If you plan on using the yocto autobuilder to run sanity testing,
+you will need to:
 
-    1. Install tight-vnc client and server.
+1. Install tight-vnc client and server.
 
-    2. Set up tap devs by running poky/scripts/runqemu-setup-tapdev
+2. Set up tap devs by running poky/scripts/runqemu-setup-tapdev
 
-    3. Add "xterm*vt100*geometry: 80x50+10+10" to .Xdefaults
+3. Add "xterm*vt100*geometry: 80x50+10+10" to .Xdefaults
 
-    4. Setup and start vnc session as the autobuilder user.
+4. Setup and start vnc session as the autobuilder user.
 
-    5. You MUST manually connect to the vnc session at least once prior to
-       running a qemu sanity test (Something is getting set during the initial
-       connection that I haven't figured out yet. Manually connecting seems to
-       set up the session correctly.)
+5. You MUST manually connect to the vnc session at least once prior to
+   running a qemu sanity test (Something is getting set during the initial
+   connection that I haven't figured out yet. Manually connecting seems to
+   set up the session correctly.)
 
 Adding additional build workers
 ===============================
 
-    The production yocto autobuilder uses a cluster of build workers, all
-    sharing the same SSTATE_DIR and DL_DIR via an NFS4 mounted NAS. The main
-    nightly trigger prepopulates the DL_DIR, allowing the workers to not have
-    to deal with a lot of downloading. In theory you could also run your build
-    workers with NO_NETWORK to enforce a single point of populating DL_DIR.
+The production yocto autobuilder uses a cluster of build workers, all
+sharing the same SSTATE_DIR and DL_DIR via an NFS4 mounted NAS. The main
+nightly trigger prepopulates the DL_DIR, allowing the workers to not have
+to deal with a lot of downloading. In theory you could also run your build
+workers with NO_NETWORK to enforce a single point of populating DL_DIR.
 
-    Running multiple build workers is fairly simple, but does require some setup:
+Running multiple build workers is fairly simple, but does require some setup:
 
-    a. Ensure the settings in autobuilder.conf are valid for each buildworker,
-       As certain variables are set within this file that are work with the
-       local configuruation on each builder.
+a. Ensure the settings in autobuilder.conf are valid for each buildworker,
+   As certain variables are set within this file that are work with the
+   local configuruation on each builder.
 
-    b. Within yocto-controller/controller.cfg add your worker to the
-       c['workers'] list inside of the BUILDWORKERS section
+b. Within yocto-controller/controller.cfg add your worker to the
+   c['workers'] list inside of the BUILDWORKERS section
 
-    c. For each build worker change the WORKER SETTINGS section of
-       yocto-worker/buildbot.tac to match the settings in controller.cfg.
+c. For each build worker change the WORKER SETTINGS section of
+   yocto-worker/buildbot.tac to match the settings in controller.cfg.
 
 Setting up build history
 ========================
 
-    Build History is used to track changes to packages and images. By default
-    the autobuilder does not collect build history. The production autobuilder
-    does have this functionality enabled.
+Build History is used to track changes to packages and images. By default
+the autobuilder does not collect build history. The production autobuilder
+does have this functionality enabled.
 
-    Setting up build history requires the following steps:
+Setting up build history requires the following steps:
 
-    1. Create an empty git repo. Make a single commit to it and the create and
-       push branches for each of the nightly core architectures (ie. mips, ppc,
-       x86...)
+1. Create an empty git repo. Make a single commit to it and the create and
+   push branches for each of the nightly core architectures (ie. mips, ppc,
+   x86...)
 
-    2. Find a central location to create a clone for this. This works best if
-       you have a set up similar to the production autobuilder (NAS with many
-       builders)
+2. Find a central location to create a clone for this. This works best if
+   you have a set up similar to the production autobuilder (NAS with many
+   builders)
 
-    3. Run the following:
+3. Run the following:
 
-        # This is an example of how to set up a local build history checkout. Paths
-        # obviously are situation dependant.
-        mkdir /nas/buildhistory
-        cd /nas/buildhistory
-        git clone ssh://git@git.myproject.org/buildhistory
-        git clone ssh://git@git.myproject.org/buildhistory nightly-arm
-        git clone ssh://git@git.myproject.org/buildhistory nightly-x86
-        git clone ssh://git@git.myproject.org/buildhistory nightly-x86-64
-        git clone ssh://git@git.myproject.org/buildhistory nightly-ppc
-        git clone ssh://git@git.myproject.org/buildhistory nightly-mips
-        for x in `ls|grep nightly` do cd $x; git checkout $x; cd /nas/buildhistory; done
+    # This is an example of how to set up a local build history checkout. Paths
+    # obviously are situation dependant.
+    mkdir /nas/buildhistory
+    cd /nas/buildhistory
+    git clone ssh://git@git.myproject.org/buildhistory
+    git clone ssh://git@git.myproject.org/buildhistory nightly-arm
+    git clone ssh://git@git.myproject.org/buildhistory nightly-x86
+    git clone ssh://git@git.myproject.org/buildhistory nightly-x86-64
+    git clone ssh://git@git.myproject.org/buildhistory nightly-ppc
+    git clone ssh://git@git.myproject.org/buildhistory nightly-mips
+    for x in `ls|grep nightly` do cd $x; git checkout $x; cd /nas/buildhistory; done
 
-    4. Within the autobuilder.conf of EACH slave change the following:
+4. Within the autobuilder.conf of EACH slave change the following:
 
-        BUILD_HISTORY_COLLECT = True
-        BUILD_HISTORY_DIR = "/nas/buildhistory"
-        BUILD_HISTORY_REPO = "ssh://git@git.myproject.org/buildhistory"
+    BUILD_HISTORY_COLLECT = True
+    BUILD_HISTORY_DIR = "/nas/buildhistory"
+    BUILD_HISTORY_REPO = "ssh://git@git.myproject.org/buildhistory"
 
 Files used for Yocto-Autobuilder Configuration
 ==============================================
