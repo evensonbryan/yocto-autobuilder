@@ -5,10 +5,8 @@ Most autobuilder setups are individual to the circumstances of the
 user. This document outlines some of the configuration options/files,
 autobuilder setup gotchas and general autobuilder best practices.
 
-Setup
-=====
-
-1. Setting the Yocto autobuilder up to run headless sanity tests
+Setup to run headless sanity tests
+===================================
 
     If you plan on using the yocto autobuilder to run sanity testing,
     you will need to:
@@ -26,7 +24,8 @@ Setup
        connection that I haven't figured out yet. Manually connecting seems to
        set up the session correctly.)
 
-2. Adding additional build workers
+Adding additional build workers
+===============================
 
     The production yocto autobuilder uses a cluster of build workers, all
     sharing the same SSTATE_DIR and DL_DIR via an NFS4 mounted NAS. The main
@@ -46,7 +45,8 @@ Setup
     c. For each build worker change the WORKER SETTINGS section of
        yocto-worker/buildbot.tac to match the settings in controller.cfg.
 
-3. Setting up build history.
+Setting up build history
+========================
 
     Build History is used to track changes to packages and images. By default
     the autobuilder does not collect build history. The production autobuilder
