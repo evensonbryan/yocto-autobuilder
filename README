@@ -82,22 +82,8 @@ Setting up build history requires the following steps:
     BUILD_HISTORY_DIR = "/nas/buildhistory"
     BUILD_HISTORY_REPO = "ssh://git@git.myproject.org/buildhistory"
 
-Files used for Yocto-Autobuilder Configuration
-==============================================
-
-Name: conf/autobuilder.conf
-Purpose:
-This file is used to set autobuilder wide parameters, like where various build
-artifacts are published to, DL_DIR, SSTATE_DIR or if build artifacts should be
-published (needed for production autobuilders, not needed for desktop builders)
-
-Name: conf/yoctoAB.conf
-Purpose:
-This is the main yocto autobuilder config. Documentation for this and associated
-format is in README_CONFIG
-
 Introduction
-------------
+============
 
 Prior versions of the yocto-autobuilder required an extensive knowledge of
 buildbot as well as basic python. Over the years, as more targets were added
@@ -108,7 +94,8 @@ configuration language, introduce the concept of customized buildsteps and
 give some basic instruction on how to modify an autobuilder setup.
 
 TODO
-------------
+====
+
 - buildhistory is not functional
 - still missing some needed build targets
     - oe-core
@@ -123,7 +110,7 @@ TODO
 - killing triggers. this has been a long standing issue. look into
 
 What is it
-------------
+==========
 
 Yocto Autobuilder is essentially some extension to the vanilla build bot.
 This extension mainly addresses configuration file handling and Yocto specific
@@ -135,9 +122,7 @@ Additional build steps such as CheckOutLayers.py or CreateBBLayersConf are
 Yocto specific and simplify the bulders configuration.
 
 Setup
-------------
-
-Nothing here has changed much.
+=====
 
 git clone git://git.yoctoproject.org/yocto-autobuilder
 cd yocto-autobuilder
@@ -145,7 +130,7 @@ cd yocto-autobuilder
 yocto-start-autobuilder both
 
 Configuration
--------------
+=============
 
 In the bad old days, the yocto-autobuilder configuration was stored in a single
 file. This file contained both build target definitions as well as helper code/
@@ -153,7 +138,7 @@ custom buildsteps. This was obviously a "bad thing". We've now removed all
 build target configuration out into the config/* directory
 
 Files
------
+=====
 
 There are two needed files in this directory. One file, autobuilder.conf, is a
 global definition file which sets various globals that slaves and master need
@@ -166,8 +151,22 @@ As long as those conf files live within the config directory, the
 yocto-autobuilder will automatically load them. This allows us to keep things
 nice and neat.
 
-yoctoAB.conf:
--------------
+Files used for Yocto-Autobuilder Configuration
+==============================================
+
+Name: conf/autobuilder.conf
+Purpose:
+This file is used to set autobuilder wide parameters, like where various build
+artifacts are published to, DL_DIR, SSTATE_DIR or if build artifacts should be
+published (needed for production autobuilders, not needed for desktop builders)
+
+Name: conf/yoctoAB.conf
+Purpose:
+This is the main yocto autobuilder config. Documentation for this and associated
+format is in README_CONFIG
+
+yoctoAB.conf
+============
 
 The main BuildSets section required for the configuration contains a single
 property:
@@ -180,7 +179,7 @@ in on the waterfall page. This can not be used with vanilla buildbot as there is
 a small patch required to utilize this functionality.
 
 buildset configuration
--------------
+======================
 
 Each buildset must start with a section name followed by at three to four
 properties:
@@ -288,94 +287,94 @@ scheduler: A list of dicts. Each item defines a scheduler associated with this
                     secret to avoid injection of arbitrary changes into your
                     autobuilder.
 
-           Extra Notes on SingleBranchScheduler setup
-           ------------------------------------------
+Extra Notes on SingleBranchScheduler setup
+==========================================
 
-       There is one SBS scheduler for each repository in the buildset, i.e.,
-           if your buildset contains more repositories, and you want build
-           triggered by changes to any of them, you need to define a scheduler
-           for each. This also means that you can mix and match, e.g., only
-           do nightly rebuilds for some repos and immediate for others.
+There is one SBS scheduler for each repository in the buildset, i.e.,
+if your buildset contains more repositories, and you want build
+triggered by changes to any of them, you need to define a scheduler
+for each. This also means that you can mix and match, e.g., only
+do nightly rebuilds for some repos and immediate for others.
 
-           The scheduler change filter is set up to watch changes only in the
-           single repository specified, so you have to set up your repository
-           hook to sent the repository url in the change set with the
-           --repository argument to git_buildbot.py, e.g., your git post-receive
-           hook could look something like:
+The scheduler change filter is set up to watch changes only in the
+single repository specified, so you have to set up your repository
+hook to sent the repository url in the change set with the
+--repository argument to git_buildbot.py, e.g., your git post-receive
+hook could look something like:
 
-             #!/bin/sh
-             echo "$1 $2 $3" | \
-                  git_buildbot.py --repository="git://some_repo..."
+    #!/bin/sh
+    echo "$1 $2 $3" | \
+        git_buildbot.py --repository="git://some_repo..."
 
-           For local testing, you can use a post-merge hook instead, along
-           these lines:
+For local testing, you can use a post-merge hook instead, along
+these lines:
 
-             #!/bin/sh
-             PRE=$(git rev-parse 'HEAD@{1}')
-             POST=$(git rev-parse HEAD)
-             SYMNAME=$(git rev-parse --symbolic-full-name HEAD)
-             echo "$PRE $POST $SYMNAME" | \
-                  git_buildbot.py --repository="file:///where_your_repo_is"
+    #!/bin/sh
+    PRE=$(git rev-parse 'HEAD@{1}')
+    POST=$(git rev-parse HEAD)
+    SYMNAME=$(git rev-parse --symbolic-full-name HEAD)
+    echo "$PRE $POST $SYMNAME" | \
+        git_buildbot.py --repository="file:///where_your_repo_is"
 
-           Because of the way builbot change sources work, your change user
-           names must not colide with the user names used by your slaves.
+Because of the way builbot change sources work, your change user
+names must not colide with the user names used by your slaves.
 
 Example:
 
-[nightly-x86]
-builders: 'builder1'
-repos: [{'poky':
-            {'repourl':'git://git.yoctoproject.org/poky',
-             'bbpriority':'1',
-             'branch':'master'}},
-        {'meta-qt3':
-            {'repourl':'git://git.yoctoproject.org/meta-qt3',
-             'bbpriority':'2',
-             'branch':'master'}}]
-steps: [{'SetDest':{}},
-        {'CheckOutLayers': {}},
-        {'RunPreamble': {}},
-        {'CreateAutoConf': {'machine': 'qemux86', 'SDKMACHINE' : 'i686',
-                            'distro': 'poky'}},
-        {'CreateBBLayersConf': {'buildprovider' : 'yocto'}},
-        {'BuildImages': {'images': 'core-image-sato core-image-sato-dev'}},
-        {'RunSanityTests': {'images': 'core-image-minimal core-image-sato'}},
-        {'PublishArtifacts': {'artifacts': ['qemux86', 'atom-pc']}}]
-scheduler: [{'dev-branch-scheduler' :
-                {'type':'SingleBranchScheduler',
-         'repository':'poky',
-         'stable-timer':30,
-                 'change-password':'secret_change_password'}}]
+    [nightly-x86]
+    builders: 'builder1'
+    repos: [{'poky':
+                {'repourl':'git://git.yoctoproject.org/poky',
+                 'bbpriority':'1',
+                 'branch':'master'}},
+            {'meta-qt3':
+                {'repourl':'git://git.yoctoproject.org/meta-qt3',
+                 'bbpriority':'2',
+                 'branch':'master'}}]
+    steps: [{'SetDest':{}},
+            {'CheckOutLayers': {}},
+            {'RunPreamble': {}},
+            {'CreateAutoConf': {'machine': 'qemux86', 'SDKMACHINE' : 'i686',
+                                'distro': 'poky'}},
+            {'CreateBBLayersConf': {'buildprovider' : 'yocto'}},
+            {'BuildImages': {'images': 'core-image-sato core-image-sato-dev'}},
+            {'RunSanityTests': {'images': 'core-image-minimal core-image-sato'}},
+            {'PublishArtifacts': {'artifacts': ['qemux86', 'atom-pc']}}]
+    scheduler: [{'dev-branch-scheduler' :
+                    {'type':'SingleBranchScheduler',
+             'repository':'poky',
+             'stable-timer':30,
+                     'change-password':'secret_change_password'}}]
 
 Adding Buildsteps
--------------
+=================
 I've included the basic buildsteps required to do general building as well as an
 example buildstep called HelloWorld.py.
 
-from buildbot.steps.shell import ShellCommand
+    from buildbot.steps.shell import ShellCommand
 
-class HelloWorld(ShellCommand):
-    haltOnFailure = True
-    flunkOnFailure = True
-    name = "Hello World"
-    def __init__(self, factory, argdict=None, **kwargs):
-        self.firstname=""
-        self.lastname=""
-        self.factory = factory
-        for k, v in argdict.iteritems():
-            if k=="name":
-                self.firstname=v
-            elif k=="lastname":
-                self.lastname=v
-            else:
-                setattr(self, k, v)
-        self.description = "Hello World"
-        self.command = "echo 'Hello World " + self.firstname + " " + self.lastname + "'"
-        ShellCommand.__init__(self, **kwargs)
+    class HelloWorld(ShellCommand):
+        haltOnFailure = True
+        flunkOnFailure = True
+        name = "Hello World"
+        def __init__(self, factory, argdict=None, **kwargs):
+            self.firstname=""
+            self.lastname=""
+            self.factory = factory
+            for k, v in argdict.iteritems():
+                if k=="name":
+                    self.firstname=v
+                elif k=="lastname":
+                    self.lastname=v
+                else:
+                    setattr(self, k, v)
+            self.description = "Hello World"
+            self.command = "echo 'Hello World " + self.firstname + " " + self.lastname + "'"
+            ShellCommand.__init__(self, **kwargs)
 
-    def describe(self, done=False):
-        description = ShellCommand.describe(self,done)
-        return description
+        def describe(self, done=False):
+            description = ShellCommand.describe(self,done)
+            return description
 
 We see that this is an inherited class (from ShellCommand) that overrides the
 __init__ and describe methods of ShellCommand. All custom buildsteps MUST override
