@@ -1,0 +1,135 @@
+# -*- python -*-
+# ex: set syntax=python:
+
+# This is the dictionary that the buildmaster pays attention to. We also use
+# a shorter alias to save typing.
+
+c = BuildmasterConfig = {}
+
+####################
+# PROJECT IDENTITY #
+####################
+
+users = [('<USER>', '<PASS>')]
+c['debugPassword'] = "<PASS>"
+
+# the 'title' string will appear at the top of this buildbot
+# installation's html.WebStatus home page (linked to the
+# 'titleURL') and is embedded in the title of the waterfall HTML page.
+
+c['title'] = "The Yocto Autobuilder"
+c['titleURL'] = "https://localhost:8010"
+
+# the 'buildbotURL' string should point to the location where the buildbot's
+# internal web server (usually the html.WebStatus page) is visible. This
+# typically uses the port number set in the Waterfall 'status' entry, but
+# with an externally-visible host name which the buildbot cannot figure out
+# without some help.
+
+c['buildbotURL'] = "http://localhost:8010"
+
+################
+# BUILDWORKERS #
+################
+
+# The 'workers' list defines the set of recognized buildworkers. Each element 
+# is a BuildWorker object (renamed from the BuildSlave buildbot terminology), 
+# specifying a unique worker name and your debug password "<PASS>". The same 
+# worker name and password must be configured on the worker. The BuildWorker
+# object can also take an optional max_builds for the number of builds you 
+# wish to run on each builder.
+# 
+# To get multiple buildworkers add another BuildWorker entry to c['workers'].
+# Your main builder that will run the nightly trigger buildset should have 
+# at least 2 build workers running. An example is below:
+#
+#     c['workers'] = [BuildWorker("builder1", "<PASS>", max_builds=3),
+#                     BuildWorker("builder2", "<PASS>", max_builds=3),]
+
+from buildbot.buildslave import BuildSlave as BuildWorker
+c['workers'] = [BuildWorker("example-worker", "<PASS>", max_builds=3),]
+
+# 'workerPortnum' defines the TCP port to listen on for connections from 
+# workers. This must match the value configured into the buildworkers 
+# (with their --master option)
+
+c['workerPortnum'] = 9989
+
+##################
+# STATUS TARGETS #
+##################
+
+# 'status' is a list of Status Targets. The results of each build will be
+# pushed to these targets. buildbot/status/*.py has a variety to choose from,
+# including web pages, email senders, and IRC bots.
+
+c['status'] = []
+from buildbot.status.html import WebStatus
+from buildbot.status.web.authz import Authz
+from buildbot.status.web.auth import BasicAuth
+authz_cfg=Authz(auth=BasicAuth(users),
+	forceBuild = 'auth',
+	stopBuild = 'auth',
+	stopAllBuilds = 'auth',
+	cancelAllPendingBuilds = 'auth',
+	cancelPendingBuild = 'auth',
+	pingBuilder = False)
+c['status'].append(WebStatus(http_port=8010, authz=authz_cfg))
+
+##########
+# CONFIG #
+##########
+
+#import yoctoABConfig
+#reload(yoctoABConfig)
+#
+from Autobuilder import Autobuilder
+yocto_buildsets = Autobuilder()
+yocto_buildsets.parseConfig()
+yocto_buildsets.createBuildsets()
+#
+from config import *
+yocto_sources = YOCTO_SOURCES
+yocto_sched = YOCTO_SCHED
+yocto_builders = YOCTO_BUILDERS
+yocto_projname = YOCTO_PROJNAME
+yocto_projurl = YOCTO_PROJURL
+#
+c['builders'] = yocto_builders
+c['change_source'] = yocto_sources
+c['schedulers'] = yocto_sched
+c['projectName'] = yocto_projname
+c['projectURL'] = yocto_projurl
+
+##########
+# DB URL #
+##########
+
+# This specifies what database buildbot uses to store its state.  You can leave
+# this at its default for all but the largest installations.
+
+c['db'] = {'db_url' : "sqlite:///state.sqlite",}
+
+############
+# POINTERS #
+############
+
+# Point outdated buildbot terminology at our updated terms
+
+c['slavePortnum'] = c['workerPortnum']; del c['workerPortnum']
+c['slaves'] = c['workers']; del c['workers']
+
+###############
+# YOCTOMAILER #
+###############
+
+#from YoctoMailer import YoctoMailNotifier
+#import Yocto_Message_Formatter
+
+#c['status'].append(YoctoMailNotifier(fromaddr="autobuilder@localhost",
+#               sendToInterestedUsers=False,
+#               yoctorepos=['git://git.yoctoproject.org/poky'],
+#               branch=['master', 'dylan', 'danny'],
+#               mode='failing',
+#               extraRecipients=["root@localhost"],
+#               messageFormatter=Yocto_Message_Formatter.message_formatter))

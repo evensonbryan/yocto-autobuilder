@@ -15,14 +15,15 @@
 .cfg
 
 TODO
-yocto-master/http.log
-yocto-master/master.cfg
-yocto-master/state.sqlite
-yocto-master/twistd.log*
-yocto-slave/build-appliance/build(newcommits)
-yocto-slave/buildbot.tac
-yocto-slave/nightly-x86/.buildbot-sourcedata-YnVpbGQ=
-yocto-slave/nightly/build(newcommits)
-yocto-slave/twistd.hostname
-yocto-slave/twistd.log*
-yocto-slave/twistd.pid
+yocto-controller/http.log
+yocto-controller/controller.cfg
+yocto-controller/state.sqlite
+yocto-controller/twistd.log*
+yocto-controller/buildbot.tac
+yocto-worker/build-appliance/build(newcommits)
+yocto-worker/buildbot.tac
+yocto-worker/nightly-x86/.buildbot-sourcedata-YnVpbGQ=
+yocto-worker/nightly/build(newcommits)
+yocto-worker/twistd.hostname
+yocto-worker/twistd.log*
+yocto-worker/twistd.pid

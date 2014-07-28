@@ -26,14 +26,22 @@ except ImportError:
   # probably not yet twisted 8.2.0 and beyond, can't set log yet
   pass
 
-buildmaster_host = 'localhost'
-port = 9989
-workername = 'builder1'
-passwd = '<PASS>'
+###################
+# WORKER SETTINGS #
+###################
+
+buildmaster_host = 'localhost' #example: 'builder1.myproject.org'
+port = 9989 # same value as workerPortNum
+workername = 'example-worker' # same as c['workers'] example-worker
+passwd = '<PASS>' # same as c['workers'] <PASS>
 keepalive = 600
 usepty = 0
 umask = 022
 maxdelay = 300
+
+####################
+# /WORKER SETTINGS #
+####################
 
 s = BuildSlave(buildmaster_host, port, workername, passwd, basedir,
                keepalive, usepty, umask=umask, maxdelay=maxdelay)

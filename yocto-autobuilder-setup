@@ -61,7 +61,36 @@ export OGIT_TRASH_DIR=/tmp/yocto-autobuilder/git/trash
 export OGIT_TRASH_CRON_TIME="0 0 * * *"
 export OGIT_TRASH_NICE_LEVEL="19"
 
-config_check=`cat ${PWD}/yocto-controller/controller.cfg|grep "'<USER>', '<PASS>'"`
+##########################
+#
+# Check to see if we've got a username/password set
+#
+##########################
+if [ ! -f  "${PWD}/yocto-controller/buildbot.tac" ]; then
+    echo ""
+    echo "Creating yocto-controller/buildbot.tac from an example buildbot.tac"
+    echo ""
+    /bin/cp yocto-controller/buildbot.tac.example yocto-controller/buildbot.tac
+fi
+
+if [ ! -f  "${PWD}/yocto-worker/buildbot.tac" ]; then
+    echo ""
+    echo "Creating yocto-worker/buildbot.tac from an example buildbot.tac"
+    echo ""
+    /bin/cp yocto-worker/buildbot.tac.example yocto-worker/buildbot.tac
+fi
+
+
+if [ ! -f  "${PWD}/yocto-controller/controller.cfg" ]; then
+    echo ""
+    echo "Creating yocto-controller/controller.cfg from an example controller.cfg"
+    echo ""
+    /bin/cp yocto-controller/controller.cfg.example yocto-controller/controller.cfg
+fi
+
+if [ "${PWD}/yocto-controller/controller.cfg" ]; then
+    config_check=`cat ${PWD}/yocto-controller/controller.cfg|grep "'<USER>', '<PASS>'"`
+fi
 
 #########################################
 #
@@ -82,7 +111,7 @@ echo " autobuilder."
 
 ##########################
 #
-# Check to see if we've got a username/password set
+# Check to see if we've got an autobuilder.conf
 #
 ##########################
 if [  ! -f  "./config/autobuilder.conf" ]; then
