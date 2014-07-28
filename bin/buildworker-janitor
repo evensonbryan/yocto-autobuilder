@@ -71,7 +71,7 @@ def trash_processor(trashdir):
             if files:
                 os.system("ionice -c 3 rm %s/* -rf" % trashdir)
             else:
-                time.sleep(30*60) # 30 minutes
+                time.sleep(120*60) # 30 minutes
         except Exception as e:
             print("Exception %s in trash cleaner" % str(e))
             time.sleep(60) # 1 minute timeout to prevent crazy looping
