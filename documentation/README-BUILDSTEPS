@@ -1,0 +1,134 @@
+This file attempts to document the autobuilder build steps.
+-----------------------------------------------------------
+
+BuildEclipsePlugin
+------------------
+This build step runs the Yocto Project Eclipse plugin builder.
+
+BuildImages
+-----------
+This build step uses Bitbake to build the images listed in the
+space-separated 'images' string.
+
+BuildToolChainImages
+--------------------
+This build step runs bitbake's environment setup script, then runs bitbake
+to build the toolchain images.
+
+CheckBSPExists
+--------------
+This build step checks whether a board support package exists.
+If the BSP is no longer supported, the build is stopped without counting as
+a failure. Otherwise, it continues as usual.
+
+CheckOutLayers
+--------------
+This build step uses git to check out the layers required by the build.
+
+CreateAutoConf
+--------------
+This build step creates the auto.conf file, which sets many properties that
+are used by bitbake.
+
+CreateBBLayersConf
+------------------
+This build step creates the bblayers.conf file, which tells bitbake which
+directories to find the layers required by the build.
+
+CreateCurrentLink
+-----------------
+This build step deletes <DEST>/../CURRENT/ then creates a symbolic link
+from <DEST> to <DEST>/../CURRENT/.
+
+CreateIntelBSPPackage
+---------------------
+This build step creates Intel's BSP package.
+
+GetDistroVersion
+----------------
+This build step gets the version of the current build's ditribution if it
+is poky, oecore, or angstrom. If the distribution is none of these, the build
+step fails.
+
+GetLayerVersion
+---------------
+This build step gets the version number of a layer. If it can not find one, the
+version number defaults to one. Once the version is found, the corresponding 
+property is set as well.
+
+HelloWorld
+----------
+This is a build step that simply writes a hello world message into the console.
+
+NoOp
+----
+This build step simply exits with a success status.
+
+PrepPkgIndex
+------------
+This build step copies or links the ipk directory to a tmp directory within the
+autobuilder so that bitbake package-index can be ran on it.
+
+PublishArtifacts
+----------------
+This build step will publish selected items to their respective publish
+directories.
+
+PublishLayerTarballs
+--------------------
+This build step will package a layer as tarballs and publish them in the
+directory the DEST property points to.
+
+ResolveLayerHead
+----------------
+This build step gets the git commit hash of the layer head, then updates the
+properties keeping track of the layer head.
+
+RunBitbakeSelftest
+------------------
+This build step runs bitbake's environment setp script followed by bitbake's
+self test.
+
+RunOeSelftest
+-------------
+This build step runs the bitbake environment setup script, then if the
+meta-selftest layer exists, oe-selftest is ran. If it doesn't exist, only the
+setup script is ran.
+
+RunPreamble
+-----------
+This build step runs the bitbake environment setup script. This script is
+required to be ran before most bitbake functions, and is therefore needed
+by the autobuilder as well.
+
+RunSanityTests
+--------------
+This build step runs sanity tests via bitbake's testimage or
+qemuimagetest_standalone commands.
+
+SendErrorReport
+---------------
+This build step sends error reports to a given server.
+
+SetDest
+-------
+This build step sets the DEST property if it hasn't been set already.
+
+Sleep
+-----
+This build puts the autobuilder to sleep for the inputted number of seconds. In
+addition, if "funny" is set to "True", a funny string is printed.
+
+SyncPersistDB
+-------------
+If the environment variable MAINTAIN_PERSISTDB is "True", and the master branch
+of poky is being used, this build step updates the persistent database.
+
+TestFailStep
+------------
+This build step completes immediately and exits with a failure status. Its used
+to test if failing build steps work properly.
+
+TriggerBuilds
+-------------
+This build step starts other builds.
