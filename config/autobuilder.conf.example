@@ -57,3 +57,14 @@ ADTREPO_DEV_PATH = "/tmp/adtrepo-dev/"
 
 [IASettings]
 EMGD_DRIVER_DIR = "/tmp/yocto-autobuilder/emgd-driver"
+
+[WebServer]
+WEB_ROOT = "/var/www/"
+WEB_URL = "http://autobuilder.yoctoproject.org/"
+
+[QAEmail]
+QA_MAIL_TO = "root@localhost otherperson@localhost"
+QA_MAIL_CC = "buildcc@localhost"
+QA_MAIL_BCC = "buildbcc@localhost"
+QA_MAIL_SIG = "Multiline\nSig\nLine"
+
