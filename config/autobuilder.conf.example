@@ -32,6 +32,7 @@ ADTQA_INST_PUBLISH_DIR = "adt-installer-QA"
 SSTATE_PUBLISH_DIR = "/tmp/yocto-autobuilder/sstate_mirror"
 SOURCE_PUBLISH_DIR = "/tmp/yocto-autobuilder/source"
 BUILD_PUBLISH_DIR = "/tmp/yocto-autobuilder/builds"
+RELEASE_PUBLISH_DIR = "/tmp/yocto-autobuilder/builds"
 X86TC_PUBLISH_DIR = "toolchain/i686"
 X8664TC_PUBLISH_DIR = "toolchain/x86_64"
 
