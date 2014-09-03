@@ -45,6 +45,18 @@ b. Within yocto-controller/controller.cfg add your worker to the
 c. For each build worker change the WORKER SETTINGS section of
    yocto-worker/buildbot.tac to match the settings in controller.cfg.
 
+d. Workers must reside in the same path as the controller, even if they are
+   on completely different machines.
+
+Triggered Builds
+================
+
+There is a limitation to using the TriggerBuilds build step. The builder using
+it needs to know several properties of the builds to be triggered. To get these
+properties, repos information of the builds to be triggered must be added to the
+builder, and a CheckOutLayers build step must be called some time before the
+TriggerBuilds call.
+
 Setting up build history
 ========================
 
