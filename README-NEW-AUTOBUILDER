@@ -96,6 +96,10 @@ repos: A list of dicts. Each item will contain a dict entry:
                      'bbpriority':'1', 
                      'branch':'master'}}
 
+      Either poky or openembedded must be the first repo listed, as that is
+      the base directory for building, and anything listed before it will be
+      deleted when the base directory is checked out.
+
 NOTE: bbpriority is currently not used
 
 props: A list of dicts. This is used when you need to add properties to a 
