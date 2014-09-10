@@ -60,6 +60,7 @@ export OPTIMIZED_GIT_CLONE=False
 export OGIT_TRASH_DIR=/tmp/yocto-autobuilder/git/trash
 export OGIT_TRASH_CRON_TIME="0 0 * * *"
 export OGIT_TRASH_NICE_LEVEL="19"
+HOST_ADDR=$(hostname -I)
 
 ##########################
 #
@@ -152,6 +153,10 @@ if [ -n "${config_check:+x}" ]; then
     echo " ${PWD}/yocto-worker/buildbot.tac "
     sed -i "s/<USER>/$username/g" ${PWD}/yocto-worker/buildbot.tac
     sed -i "s/<PASS>/$password/g" ${PWD}/yocto-worker/buildbot.tac
+    echo ""
+    echo " Updating worker-init script used for google cloud building. "
+    sed -i "s/<HOST_ADDR>/$HOST_ADDR/" ${PWD}/bin/worker-init
+    sed -i "s/<PASS>/$password/" ${PWD}/bin/worker-init
     echo ""
     echo " If you wish to use your own generated username and password please "
     echo " modify the above files as needed. Please see the README for more "
