@@ -1,0 +1,68 @@
+Limitations
+------------
+The current implementation of the Google Cloud building has a couple of
+limitations.
+
+First of all, Google's gcloud command line tool is required for
+all functions (see https://developers.google.com/cloud/sdk/gcloud/).
+
+Next, the controller machine is required to be authenticated with Google's cloud
+system (see https://developers.google.com/cloud/sdk/gcloud/reference/auth/).
+
+Third, the workers must be on a network which has the worker port
+(port 9989 by default) open. This can be done by setting up a network and
+using that network in the ProvisionGoogleVM builstep. Example commands to
+set up a network:
+
+gcloud compute networks create autobuilder-network
+gcloud compute firewall-rules autobuilder-allow --network autobuilder-network \
+    --allow tcp:8010 tcp:9989 tcp:80 tcp:22
+
+This sets up a network that is suitable for both controllers and workers, as
+it allows all default autobuilder connections, as well as ssh and http. The
+key:value pair 'network':'autobuilder-network' can then be added to your
+ProvisionGoogleVMs buildstep, allowing provisioned machines to connect to
+controllers.
+
+Fourth, additional workers must be added to yocto-controller/controller.cfg
+with the format:
+     BuildWorker("worker<N>", "<WORKER-PASSWORD>", max_builds=3)
+where N is 0...however many workers you want and WORKER-PASSWORD is the default
+password. For example, if I wanted to add three workers for the cloud builder:
+
+    c['workers'] = [BuildWorker("example-worker", "eeieHim8V", max_builds=3),]
+
+would be changed to this:
+
+    c['workers'] = [BuildWorker("example-worker", "eeieHim8V", max_builds=3),
+                    BuildWorker("worker0", "eeieHim8V", max_builds=3),
+                    BuildWorker("worker1", "eeieHim8V", max_builds=3),
+                    BuildWorker("worker2", "eeieHim8V", max_builds=3),]
+
+Finally, the worker-init script is only an example and has a couple
+limitations itself. It has only been tested for debian VMs and will likely not
+work on others. Also, the <HOST_ADDR> and <PASS> fields will need to be
+manually edited in it if your autobuilder was created before the addition of
+the GoogleVM buildsteps or if the controller machine is behind a firewall.
+
+HowTo
+----------
+
+Assuming that the limitations above have been dealt with, this will provision
+one new VM and completely set it up, including connections
+
+    {'ProvisionGoogleVMs':{
+        'vmname':'autobuilder-worker-startup-test',
+        'vmcount':1,
+        'zone':'us-central1-a',
+        'machine':'n1-standard-4',
+        'disksize':'230GB',
+        'startupscript':'/path/to/yocto-autobuilder/bin/worker-init',
+        'network':'autobuilder-network'}}
+
+And this will delete the entire VM when you are finished with it:
+
+    {'DeleteGoogleVMs': {}}
+
+Note that the current implementation of DeleteGoogleVM requires that its in the
+same buildset as CreateGoogleVM.
