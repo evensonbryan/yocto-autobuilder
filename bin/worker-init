@@ -1,0 +1,39 @@
+#!/bin/bash
+
+if [ ! -f /var/log/firstboot.log ]
+then
+  START_SECTOR=$(fdisk -l | grep sda1 | sed 's/\*//' | awk '{ print $2 }')
+  echo -e "d\nn\n\n\n$START_SECTOR\n\nw\n" | fdisk /dev/sda
+  touch /var/log/firstboot.log
+  reboot
+fi
+
+if [ ! -f /var/log/secondboot.log ]
+then
+  resize2fs /dev/sda1
+  sudo apt-get update
+  yes | sudo apt-get install make
+  yes | sudo apt-get install git
+  yes | sudo apt-get install gcc
+  yes | sudo apt-get install g++
+  yes | sudo apt-get install diffstat
+  yes | sudo apt-get install texinfo
+  yes | sudo apt-get install bzip2
+  yes | sudo apt-get install gawk
+  yes | sudo apt-get install chrpath
+  yes | sudo apt-get install libsdl1.2-dev
+  yes "dummyinfo" | adduser autobuilder
+  touch /var/log/secondboot.log
+fi
+
+WORKER_NUM=$(uname -n | grep -o [0-9])
+
+cd /home/autobuilder
+su autobuilder -c "yes 'yes' | git clone git://git.yoctoproject.org/yocto-autobuilder"
+
+cd yocto-autobuilder
+su autobuilder -c '. ./yocto-autobuilder-setup'
+su autobuilder -c "sed -i 's/example-worker/worker'$WORKER_NUM'/' yocto-worker/buildbot.tac"
+su autobuilder -c 'sed -i "s/passwd =.*/passwd = '"'"'<PASS>'"'"'/" yocto-worker/buildbot.tac'
+su autobuilder -c 'sed -i "s/buildmaster_host =.*/buildmaster_host = '"'"'<HOST_ADDR>'"'"'/" yocto-worker/buildbot.tac'
+su autobuilder -c '. ./yocto-autobuilder-setup; ./yocto-start-autobuilder worker &'
