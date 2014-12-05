@@ -182,7 +182,8 @@ scheduler: A list of dicts. Each item defines a scheduler associated with this
                     definition.
 
                stable-timer: how long (in seconds) to wait after change before
-                    triggering build to allow for changes to settle.
+                    triggering build to allow for changes to settle.  Defaults
+                    to 60 seconds.
 
 	       change-user: the user name which the remote hook will use; the
                     default value is the repository name as per the 'repository'
@@ -194,6 +195,17 @@ scheduler: A list of dicts. Each item defines a scheduler associated with this
                     secret to avoid injection of arbitrary changes into your
                     autobuilder.
 
+               changesource: the type of changesource to use for the scheduler;
+                    the default setting is a PBChangeSource.  Only other valid
+                    option is 'GitPoller' for a GitPoller changesource.  See the
+                    official Buildbot documentation at
+                    http://docs.buildbot.net/latest/manual/cfg-changesources.html
+                    for more information on changesources.
+               
+               interval: The interval between polling for changes.  Only valid
+                    for GitPoller changesources.  Defaults to 300 seconds (five
+                    minutes).
+
            Extra Notes on SingleBranchScheduler setup
            ------------------------------------------
 
@@ -204,10 +216,10 @@ scheduler: A list of dicts. Each item defines a scheduler associated with this
            do nightly rebuilds for some repos and immediate for others.
 
            The scheduler change filter is set up to watch changes only in the
-           single repository specified, so you have to set up your repository
-           hook to sent the repository url in the change set with the
-           --repository argument to git_buildbot.py, e.g., your git post-receive
-           hook could look something like:
+           single repository specified.  If you are using a PBChangeSource, you
+           have to set up your repository hook to send the repository url in the
+           change set with the --repository argument to git_buildbot.py, e.g.,
+           your git post-receive hook could look something like:
 
              #!/bin/sh
              echo "$1 $2 $3" | \
@@ -224,7 +236,18 @@ scheduler: A list of dicts. Each item defines a scheduler associated with this
                   git_buildbot.py --repository="file:///where_your_repo_is"
 
            Because of the way builbot change sources work, your change user
-           names must not colide with the user names used by your slaves.
+           names must not collide with the user names used by your slaves.
+
+           If you are using a GitPoller changesource and you specify a valid
+           repository but an non-existent branch, Buildbot will silently ignore
+           your scheduler. If a repository has changed recently but your build
+           has not triggered, validate that your repository and branch settings
+           are valid.
+
+           For either a PBChangeSource or a GitPoller changesource, the
+           scheduler will not see the initial repository discovery as a change.
+           If you are using a SingleBranchScheduler schedule, it is good
+           practice to force a build to verify the buildset works correctly.
 
 Example:
 

@@ -1218,7 +1218,7 @@
                         <p class="c0"><span class="c9">the user name which the remote hook will use; the &nbsp;default value is the repository name as per the &#39;repository&#39; property.</span></p>
                     </td>
                 </tr>
-                <tr class="c3">
+                 <tr class="c3">
                     <td class="c15" colspan="1" rowspan="1">
                         <p class="c0"><span class="c9">change-password</span></p>
                     </td>
@@ -1229,15 +1229,37 @@
                         <p class="c0"><span class="c9">password which the remote hook will use; the default is the buildbot default &#39;changepw&#39; -- if your autobuilder is publically accessible, you want to keep this secret to avoid injection of arbitrary changes into your autobuilder.<br></span></p>
                     </td>
                 </tr>
+                <tr class="c3">
+                    <td class="c15" colspan="1" rowspan="1">
+                        <p class="c0"><span class="c9">changesource</span></p>
+                    </td>
+                    <td class="c28" colspan="1" rowspan="1">
+                        <p class="c0"><span class="c9">Optional</span></p>
+                    </td>
+                    <td class="c45" colspan="1" rowspan="1">
+                        <p class="c0"><span class="c9">the type of changesource to use for the scheduler; the default setting is a PBChangeSource. Only other valid option is 'GitPoller' for a GitPoller changesource. See the <span class="c20"><a class="c29" href="http://docs.buildbot.net/latest/manual/cfg-changesources.html">Buildbot Changesource documentation</a></span><span>&nbsp;for more information on changesources.<br></span></p>
+                    </td>
+                <tr class="c3">
+                    <td class="c15" colspan="1" rowspan="1">
+                        <p class="c0"><span class="c9">interval</span></p>
+                    </td>
+                    <td class="c28" colspan="1" rowspan="1">
+                        <p class="c0"><span class="c9">Optional</span></p>
+                    </td>
+                    <td class="c45" colspan="1" rowspan="1">
+                        <p class="c0"><span class="c9">The interval between polling for changes. Only valid for GitPoller changesources. Defaults to 300 seconds (five minutes).<br></span></p>
+                    </td>
+                 </tr>
             </tbody>
         </table>
         <h5 class="c4 c14"><a name="h.9xpudqajj26x"></a><span><br></span><span class="c43">Extra Notes on SingleBranchScheduler setup</span><span><br></span></h5>
         <p class="c4"><span>There is one SBS scheduler for each repository in the buildset, i.e., if your buildset contains more repositories, and you want build triggered by changes to any of them, you need to define a scheduler for each. This also means that you can mix and match, e.g., only do nightly rebuilds for some repos and immediate for others.<br></span></p>
-        <p class="c4"><span>The scheduler change filter is set up to watch changes only in the single repository specified, so you have to set up your repository hook to sent the repository url in the change set with the --repository argument to git_buildbot.py, e.g., your git post-receive &nbsp;hook could look something like:<br></span></p>
+        <p class="c4"><span>The scheduler change filter is set up to watch changes only in the single repository specified. If you are using a PBChangeSource, you have to set up your repository hook to send the repository url in the change set with the --repository argument to git_buildbot.py, e.g., your git post-receive hook could look something like:<br></span></p>
         <h6 class="c4 c14"><a name="h.xrluuas8ukd9"></a><span><br> &nbsp; &nbsp;#!/bin/sh<br> &nbsp; &nbsp;echo &quot;$1 $2 $3&quot; | git_buildbot.py --repository=&quot;git://some_repo...&quot;<br></span></h6>
         <p class="c4"><span><br>For local testing, you can use a post-merge hook instead, along these lines:</span></p>
         <h6 class="c4 c14"><a name="h.64rcw99ffkjq"></a><span><br> &nbsp; &nbsp;#!/bin/sh<br> &nbsp; &nbsp;PRE=$(git rev-parse &#39;HEAD@{1}&#39;)<br> &nbsp; &nbsp;POST=$(git rev-parse HEAD)<br> &nbsp; &nbsp;SYMNAME=$(git rev-parse --symbolic-full-name HEAD)<br> &nbsp; &nbsp;echo &quot;$PRE $POST $SYMNAME&quot; | \<br> &nbsp; &nbsp;git_buildbot.py --repository=&quot;file:///where_your_repo_is&quot;</span></h6>
         <p class="c4"><span><br>Because of the way buildbot change sources work, your change user names must not collide with the user names used by your slaves.</span></p>
+        <p class="c4"><span><br>If you are using a GitPoller changesource and you specify a valid repository but an non-existent branch, Buildbot will silently ignore your scheduler. If a repository has changed recently but your build has not triggered, validate that your repository and branch settings are valid.</span></p><p class="c4"><span><br>For either a PBChangeSource or a GitPoller changesource, the scheduler will not see the initial repository discovery as a change. If you are using a SingleBranchScheduler schedule, it is good practice to force a build after initial setup to verify the buildset works correctly.</span></p>
         <p class="c4 c6"><span></span></p>
         <h3 class="c4 c14"><a name="h.fs6mwzkke7xv"></a><span>How do I create my own buildset?</span></h3>
         <ol class="c7 lst-kix_rxf8talb6b1y-0 start" start="1">
