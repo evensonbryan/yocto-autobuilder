@@ -387,7 +387,7 @@
                         <p class="c0"><span class="c9">directory string</span></p>
                     </td>
                     <td class="c22" colspan="1" rowspan="1">
-                        <p class="c0"><span class="c9">Directory to use for buildhistory.</span></p>
+                        <p class="c0"><span class="c9">Directory to use for buildhistory.  This directory will be created if it does not already exist.</span></p>
                     </td>
                 </tr>
                 <tr class="c3">
@@ -398,7 +398,7 @@
                         <p class="c0"><span class="c9">URL string</span></p>
                     </td>
                     <td class="c22" colspan="1" rowspan="1">
-                        <p class="c0"><span class="c9">Repo to use for buildhistory.</span></p>
+                        <p class="c0"><span class="c9">Git repository for the build history to push changes.  This must point to a Git repository.  Set BUILD_HISTORY_REPO to "" if you do not want to use this feature.</span></p>
                     </td>
                 </tr>
                 <tr class="c3">
@@ -1731,6 +1731,8 @@
         <h5 class="c4 c14"><a name="h.mt3y7s49lkj3"></a><span class="c25">2014-09-15 16:39:31-0700 [-] Configuration Errors:<br>2014-09-15 16:39:31-0700 [-] &nbsp; error while parsing config file: No module named foobar (traceback in logfile)<br>2014-09-15 16:39:31-0700 [-] Halting master.<br>2014-09-15 16:39:31-0700 [-] Main loop terminated.<br>2014-09-15 16:39:31-0700 [-] Server Shut Down.</span></h5>
         <h5 class="c4 c36 c14"><a name="h.hrtfbgkvsrt3"></a></h5>
         <p class="c4"><span>In this case, we&rsquo;re trying to import a module named foobar into the BuildImages buildstep. It either does not exist or is not in our PYTHONPATH, so the start fails.<br><br>One of the less common issues people run across is a build worker not connecting to the controller. There could be a lot of reasons for this, most of them involving an inability of the worker to connect to the controller port.<br><br>First, check the yocto-worker/twistd.log as well as the yocto-controller/twistd.log. These will generally give you a good idea as to what is going on. Next, check the yocto-worker/buildbot.tac file and ensure that the worker is pointed to the correct controller, port and utilizes the correct password. Lastly, check that the buildsets are referencing the name of the worker as defined in yocto-worker/buildbot.tac.</span></p>
+        <h2 class="c4 c14"><span>Setting up Build History</span></h2>
+        <p class="c4"><span><br>Build history can be very useful when used in conjunction with the autobuilder to track what changed between builds. For more information on build history and its uses, see the "Maintaining Build Output Quality" section in the <span class="c20"><a class="c29" href="http://www.yoctoproject.org/documentation/current/">current version of the Yocto Project Reference Manual</a></span>.<br>There are two steps to enabling build history for a buildset. Build history has to be globally enabled for the autobuilder, and then then build history has to be enabled for each buildset. This gives you the freedom to use build history for some of your buildsets but not all of them.<br><br>To globally enable build history, setup BUILD_HISTORY_COLLECT, BUILD_HISTORY_DIR and BUILD_HISTORY_REPO to valid values in your autobuilder.conf. See the <a href="#h.db796lhd1kp5">What is the format of the autobuilder.conf file?</a> section of this document for more information on these variables.  To enable build history for a specific buildset, add "'buildhistory': True" to the CreateAutoConf buildstep.  After making these changes, restart the autobuilder for the changes to take effect.  See the <a href="#h.q4peqc6rvcl2">Default buildsteps</a> section in this document for more information on the CreateAutoConf buildstep.</span></p>
         <p class="c4 c6"><span></span></p>
         <p class="c4"><span>TODO:</span></p>
         <p class="c4 c6"><span></span></p>
